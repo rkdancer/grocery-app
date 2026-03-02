@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Products - Stock ร้านสุขใจ</title>
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        .card-actions{ position:absolute; top:10px; right:10px; display:flex; gap:8px; z-index:2; }
+        .icon-btn{
+          width:36px;height:36px;border:none;border-radius:10px;background:#fff;
+          box-shadow:0 2px 8px rgba(0,0,0,.1);cursor:pointer;
+          display:flex;align-items:center;justify-content:center;
+        }
+        .icon-btn.edit i{ color:#1976d2; }
+        .icon-btn.del i{ color:#d32f2f; }
+        .card-item{ position:relative; }
+
+        .product-info{
+          margin-top:12px;
+          padding:12px;
+          border-radius:10px;
+          background:#f9fbff;
+          border:1px solid #e3f2fd;
+          display:grid;
+          grid-template-columns:1fr 1fr;
+          gap:8px 12px;
+          font-size:.9rem;
+        }
+        .product-info .label{ color:#666; }
+        .product-info .value{ text-align:right; font-weight:600; }
+        .price{ color:#1976d2; }
+        .stock-ok{ color:#2e7d32; }
+        .stock-low{ color:#f57c00; }
+        .stock-out{ color:#d32f2f; }
+
+        .header-actions{ display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; }
+        .btn-low-stock{
+          background:#fff3e0; color:#e65100; border:1px solid #ffcc80;
+          padding:10px 18px; border-radius:25px; font-weight:600;
+          cursor:pointer; display:flex; align-items:center; gap:8px;
+        }
+        .btn-low-stock.active{ background:#e65100; color:#fff; }
+
+        /* ===== OWNER SELECT ===== */
+        .owner-box{
+          background:#f7fbff;
+          border:1px solid #cfe8fc;
+          border-radius:14px;
+          padding:12px 16px;
+          margin:12px 0 18px 0;
+          display:none;
+        }
+        .owner-item{
+          display:flex;
+          align-items:center;
+          gap:6px;
+          font-size:.95rem;
+        }
+
+        .search-row { 
+            display: flex; 
+            justify-content: flex-start; /* เนื้อหาชิดซ้าย */
+            
+            /* กำหนดความกว้างแถวให้เท่ากับ Grid สินค้า (3 คอลัมน์) เพื่อให้ start ตรงกัน */
+            max-width: 810px; 
+            width: 100%; 
+            
+            /* จัดแถวนี้ให้อยู่กึ่งกลางหน้าจอ */
+            margin: 0 auto 20px auto; 
+        }
+
+        .search-box {
+            width: 320px; /* ความกว้างช่องค้นหา */
+            height: 45px;
+            display: flex; 
+            align-items: center;
+            gap: 10px; 
+            background: #fff;
+            border: 1px solid #b3e5fc;
+            border-radius: 50px; /* ทรงแคปซูล */
+            padding: 0 15px;
+            box-shadow: 0 2px 6px rgba(25, 118, 210, 0.1);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .search-box:focus-within {
+            border-color: #1976d2;
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.2);
+        }
+
+        .search-box i.fa-search {
+            color: #1976d2;
+            font-size: 1.1rem;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        /* ลบขอบและพื้นหลังของ Input ให้เนียนตา */
+        .search-box input {
+            border: none !important;
+            outline: none !important;
+            background: transparent;
+            width: 100%;
+            height: 100%;
+            font-size: 1rem;
+            color: #444;
+            padding: 0;
+            margin: 0;
+        }
+
+        /* ปรับปุ่มกากบาทให้เข้าชุดกัน */
+        .search-clear {
+            border: none !important;
+            background: transparent;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            color: #bbb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+            font-size: 1rem;
+            padding: 0;
+        }
+        
+        .search-clear:hover {
+            color: #ef5350;
+        }
+
+        .pagination{ display:flex; justify-content:center; gap:8px; margin-top:20px; flex-wrap:wrap; }
+        .page-btn{
+          border:1px solid #d0d7de; background:#fff; padding:8px 12px;
+          border-radius:10px; cursor:pointer; font-weight:600;
+        }
+        .page-btn.active{ background:#1976d2; color:#fff; border-color:#1976d2; }
+
+        .sidebar-menu .logout-btn{
+          width:100%; text-align:left; border:none; background:transparent;
+          padding:10px 12px; cursor:pointer; display:flex; gap:10px;
+          align-items:center; border-radius:10px;
+        }
+        .sidebar-menu .logout-btn:hover{ background:rgba(25,118,210,.08); }
+
+        .status-text{
+          text-align:center; color:#e65100; font-weight:600; margin-bottom:10px;
+        }
+
+        .hint-readonly{
+          text-align:center;
+          font-size:.85rem;
+          color:#666;
+          margin-top:8px;
+        }
+    </style>
+</head>
+
+<body>
+<div class="dashboard-wrapper">
+
+    <div class="sidebar">
+        <div class="logo-modern-wrapper">
+            <div class="sukjai-icon">
+                <div class="box-tape"></div>
+                <div class="box-face">
+                    <div class="eye left"></div>
+                    <div class="eye right"></div>
+                    <div class="cheeks left"></div>
+                    <div class="cheeks right"></div>
+                    <div class="mouth"></div>
+                </div>
+            </div>
+            <div class="logo-text-wrapper">
+                <span class="brand-stock">STOCK</span>
+                <span class="brand-name">ร้านสุขใจ</span>
+            </div>
+        </div>
+
+        <ul class="sidebar-menu" id="sidebarMenu">
+            <!-- sidebar injected by JS -->
+        </ul>
+    </div>
+
+
+    <div class="main-content">
+        <div class="page-header-wrapper">
+            <h1 class="page-title">สินค้าในหมวด</h1>
+
+            <div class="header-actions">
+                <button class="btn-low-stock" id="lowStockBtn" onclick="toggleLowStock()">
+                    <i class="fas fa-triangle-exclamation"></i> สินค้าใกล้หมด
+                </button>
+                <button class="btn-low-stock" onclick="toggleOwnerBox()">
+                    <i class="fas fa-users"></i> เลือกเจ้าของ
+                </button>
+                <button class="btn-low-stock" onclick="sendLowStockEmail()">
+                    <i class="fas fa-envelope"></i> ส่งเมลให้เจ้าของ
+                </button>
+                <button class="btn-add-category" onclick="openCreateModal()">
+                    <i class="fas fa-plus"></i> เพิ่มสินค้า
+                </button>
+            </div>
+        </div>
+
+        <!-- OWNER SELECT -->
+        <div id="ownerBox" class="owner-box">
+            <div style="font-weight:600;margin-bottom:8px;">
+                เลือกเจ้าของร้าน (เลือกได้หลายคน)
+            </div>
+            <div id="ownerList" style="display:flex;flex-wrap:wrap;gap:14px;"></div>
+        </div>
+
+        <div id="statusText" class="status-text" style="display:none;">
+            แสดงเฉพาะสินค้าใกล้หมด (คงเหลือ ≤ 5)
+        </div>
+
+        <div class="search-row">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input id="searchInput" placeholder="ค้นหาสินค้า...">
+                <button class="search-clear" id="clearBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="grid-container" id="productGrid"></div>
+        <div class="pagination" id="pagination"></div>
+    </div>
+</div>
+
+<!-- ===== MODAL ===== -->
+<div id="productModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <h2 id="modalTitle"></h2>
+
+        <div class="form-group"><label>ชื่อสินค้า</label><input id="pName" class="form-control"></div>
+        <div class="form-group"><label>ราคาซื้อ</label><input id="pBuy" type="number" class="form-control"></div>
+        <div class="form-group"><label>ราคาขาย</label><input id="pSell" type="number" class="form-control"></div>
+        <div class="form-group"><label>คงเหลือ</label><input id="pStock" type="number" class="form-control"></div>
+        <div class="form-group"><label>รูปสินค้า</label><input id="pImage" type="file"></div>
+
+        <div class="hint-readonly">
+            *ยอดขายเดือนนี้จะคำนวณจากการขายจริงในหน้า POS อัตโนมัติ
+        </div>
+
+        <button class="btn-primary" onclick="submitProduct()">บันทึก</button>
+    </div>
+</div>
+
+<script>
+    /* ===== ROLE GUARD ===== */
+    function logout(){ localStorage.clear(); location="login.html"; }
+
+    const me = JSON.parse(localStorage.getItem("user") || "null");
+    if (!me) logout();
+
+
+
+    // OWNER ❌ ไม่ส่งเมล ไม่เลือกเจ้าของ
+    if (String(me.role || "").toUpperCase() === "OWNER") {
+      document.querySelectorAll(".btn-low-stock").forEach(btn=>{
+        if (btn.innerText.includes("ส่งเมล")) btn.style.display = "none";
+        if (btn.innerText.includes("เลือกเจ้าของ")) btn.style.display = "none";
+      });
+
+      const box = document.getElementById("ownerBox");
+      if (box) box.style.display = "none";
+
+      window.toggleOwnerBox = function(){};
+    }
+
+    /* ===== AUTH ===== */
+    function getAccessToken(){ return localStorage.getItem("accessToken")||""; }
+    async function authFetch(url,opt={}){
+      const t=getAccessToken(); if(!t) logout();
+      const h=new Headers(opt.headers||{}); h.set("Authorization","Bearer "+t);
+      const r=await fetch(url,{...opt,headers:h}); if(r.status===401) logout();
+      return r;
+    }
+
+    /* ===== OWNER ===== */
+    let ownersLoaded=false;
+    function toggleOwnerBox(){
+      const box=document.getElementById("ownerBox");
+      box.style.display = box.style.display==="none" ? "block" : "none";
+      if(!ownersLoaded) loadOwners();
+    }
+    async function loadOwners(){
+      ownersLoaded=true;
+      const r=await authFetch("/api/users/owners");
+      const owners=await r.json();
+      const list=document.getElementById("ownerList");
+      list.innerHTML="";
+      owners.forEach(o=>{
+        list.innerHTML+=`
+          <label class="owner-item">
+            <input type="checkbox" value="${o.id}">
+            ${o.username} (${o.email})
+          </label>
+        `;
+      });
+    }
+
+    /* ===== STATE ===== */
+    const PAGE_SIZE=6;
+    const LOW_STOCK_LIMIT=5;
+
+    let categoryId=new URL(location.href).searchParams.get("categoryId");
+    let page=0,total=1,q="";
+    let editId=null;
+    let showLowStockOnly=false;
+
+    /* ===== LOAD ===== */
+    async function loadProducts(p=0){
+      page=p;
+      const r=await authFetch(
+        `/api/categories/${categoryId}/products?page=${p}&size=${PAGE_SIZE}&q=${encodeURIComponent(q)}`
+      );
+      const d=await r.json();
+
+      let items=d.items||[];
+      total=d.totalPages||1;
+
+      if(showLowStockOnly){
+        items=items.filter(i=>Number(i.stockQty)<=LOW_STOCK_LIMIT);
+      }
+
+      render(items);
+      renderPagination();
+    }
+
+    /* ===== RENDER ===== */
+    function render(items){
+      const grid=document.getElementById("productGrid");
+      grid.innerHTML="";
+      if(items.length===0){
+        grid.innerHTML="<p style='text-align:center;color:#777;'>ไม่พบสินค้า</p>";
+        return;
+      }
+
+      items.forEach(p=>{
+        const stockClass =
+          p.stockQty<=0 ? "stock-out" :
+          p.stockQty<=5 ? "stock-low" : "stock-ok";
+
+        const monthly = (p.monthlySales ?? 0); // ต้องมาจาก backend คำนวณให้
+
+        const card=document.createElement("div");
+        card.className="card-item";
+
+        card.innerHTML=`
+          <div class="card-actions">
+            <button class="icon-btn edit"><i class="fas fa-pen"></i></button>
+            <button class="icon-btn del"><i class="fas fa-trash"></i></button>
+          </div>
+
+          <p style="text-align:left;font-weight:bold">${p.name}</p>
+          <img src="${p.imageUrl||'https://placehold.co/200'}">
+
+          <div class="product-info">
+            <div class="label">ราคาซื้อ</div><div class="value">${p.buyPrice}</div>
+            <div class="label">ราคาขาย</div><div class="value price">${p.sellPrice}</div>
+            <div class="label">คงเหลือ</div><div class="value ${stockClass}">${p.stockQty}</div>
+            <div class="label">ยอดขายเดือนนี้</div><div class="value">${monthly}</div>
+          </div>
+        `;
+
+        card.querySelector(".edit").onclick=()=>openEditModal(p);
+        card.querySelector(".del").onclick=()=>deleteProduct(p.id);
+
+        grid.appendChild(card);
+      });
+    }
+
+    /* ===== PAGINATION ===== */
+    function renderPagination(){
+      const p=document.getElementById("pagination");
+      p.innerHTML="";
+      for(let i=0;i<total;i++){
+        const b=document.createElement("button");
+        b.className="page-btn"+(i===page?" active":"");
+        b.textContent=i+1;
+        b.onclick=()=>loadProducts(i);
+        p.appendChild(b);
+      }
+    }
+
+    /* ===== SEARCH ===== */
+    searchInput.oninput=()=>{
+      clearTimeout(window._t);
+      window._t=setTimeout(()=>{ q=searchInput.value; loadProducts(0); },300);
+    };
+    clearBtn.onclick=()=>{ searchInput.value=""; q=""; loadProducts(0); };
+
+    /* ===== LOW STOCK ===== */
+    function toggleLowStock(){
+      showLowStockOnly=!showLowStockOnly;
+      lowStockBtn.classList.toggle("active",showLowStockOnly);
+      statusText.style.display=showLowStockOnly?"block":"none";
+      loadProducts(0);
+    }
+
+    /* ===== MODAL ===== */
+    function openCreateModal(){
+      editId=null;
+      modalTitle.textContent="เพิ่มสินค้า";
+      pName.value=pBuy.value=pSell.value=pStock.value="";
+      pImage.value="";
+      productModal.style.display="block";
+    }
+    function openEditModal(p){
+      editId=p.id;
+      modalTitle.textContent="แก้ไขสินค้า";
+      pName.value=p.name;
+      pBuy.value=p.buyPrice;
+      pSell.value=p.sellPrice;
+      pStock.value=p.stockQty;
+      pImage.value="";
+      productModal.style.display="block";
+    }
+    function closeModal(){ productModal.style.display="none"; }
+
+    /* ===== SAVE / DELETE ===== */
+    async function submitProduct(){
+      const fd=new FormData();
+      fd.append("name",pName.value);
+      fd.append("buyPrice",pBuy.value);
+      fd.append("sellPrice",pSell.value);
+      fd.append("stockQty",pStock.value);
+      if(pImage.files[0]) fd.append("image",pImage.files[0]);
+
+      const isEdit = !!editId; // ✅ จำว่าเป็น edit หรือ create
+      const url=isEdit
+        ? `/api/products/${editId}`
+        : `/api/categories/${categoryId}/products`;
+      const method=isEdit?"PUT":"POST";
+
+      const r=await authFetch(url,{method,body:fd});
+      if(!r.ok){
+        const e=await r.json().catch(()=>null);
+        alert(e?.message || "บันทึกไม่สำเร็จ");
+        return;
+      }
+
+      closeModal();
+
+      // ✅ แก้ปัญหา: บันทึกแล้วเด้งกลับหน้าแรก
+      // - ถ้าแก้ไข: อยู่หน้าเดิม
+      // - ถ้าเพิ่มใหม่: กลับหน้าแรก
+      if(isEdit){
+        loadProducts(page);
+      }else{
+        loadProducts(0);
+      }
+    }
+
+    async function sendLowStockEmail(){
+      const ids=[...document.querySelectorAll("#ownerList input:checked")]
+        .map(i=>Number(i.value));
+      if(ids.length===0){ alert("กรุณาเลือกเจ้าของอย่างน้อย 1 คน"); return; }
+
+      const r=await authFetch("/api/notifications/low-stock-email",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({ ownerIds: ids })
+      });
+      const d=await r.json().catch(()=>null);
+      if(!r.ok){ alert(d?.message || "ส่งเมลไม่สำเร็จ"); return; }
+      alert("ส่งอีเมลเรียบร้อย");
+    }
+
+    async function deleteProduct(id){
+      if(!confirm("ลบสินค้านี้?")) return;
+      const r=await authFetch(`/api/products/${id}`,{method:"DELETE"});
+      if(!r.ok){ alert("ลบไม่สำเร็จ"); return; }
+
+      // ✅ ลบแล้วให้อยู่หน้าเดิม (ไม่เด้งกลับหน้าแรก)
+      loadProducts(page);
+    }
+
+    /* ===== INIT ===== */
+    if(categoryId) loadProducts();
+</script>
+
+<script src="components/sidebar.js"></script>
+</body>
+</html>

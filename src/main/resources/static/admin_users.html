@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - จัดการผู้ใช้</title>
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        .sidebar-menu .logout-btn{
+          width:100%;
+          text-align:left;
+          border:none;
+          background:transparent;
+          color:inherit;
+          padding:10px 12px;
+          cursor:pointer;
+          display:flex;
+          gap:10px;
+          align-items:center;
+          border-radius:8px;
+        }
+        .sidebar-menu .logout-btn:hover{
+          background: rgba(255,255,255,0.5);
+        }
+
+        .table-wrap{
+          background:#fff;
+          border-radius:14px;
+          padding:20px;
+          box-shadow:0 2px 10px rgba(0,0,0,.08);
+        }
+        table{ width:100%; border-collapse:collapse; }
+        th,td{
+          padding:12px 10px;
+          border-bottom:1px solid #eee;
+          text-align:left;
+          vertical-align: middle;
+        }
+        th{ background:#f7fbff; font-weight:700; }
+
+        .role-select{
+          padding:6px 10px;
+          border-radius:8px;
+        }
+
+        .btn{
+          padding:7px 12px;
+          border:none;
+          border-radius:10px;
+          cursor:pointer;
+          font-weight:700;
+          display:inline-flex;
+          align-items:center;
+          gap:8px;
+        }
+        .btn:disabled{ opacity:.55; cursor:not-allowed; }
+
+        .btn-disable{ background:#fdecea; color:#c62828; }
+        .btn-enable{ background:#e8f5e9; color:#2e7d32; }
+        .btn-edit{ background:#e3f2fd; color:#1565c0; }
+        .btn-del{ background:#ffebee; color:#d32f2f; }
+
+        .badge{
+          padding:4px 10px;
+          border-radius:999px;
+          font-size:.8rem;
+          font-weight:800;
+          display:inline-block;
+          border:1px solid #d0d7de;
+          background:#fff;
+        }
+        .badge.active{ border-color:#c8e6c9; background:#e8f5e9; color:#2e7d32; }
+        .badge.disabled{ border-color:#ffcdd2; background:#ffebee; color:#c62828; }
+
+        /* ===== MODAL ===== */
+        .modal{ display:none; position:fixed; z-index:999; left:0; top:0; width:100%; height:100%; overflow:auto;
+          background:rgba(0,0,0,.35); }
+        .modal-content{
+          background:#fff;
+          margin:7% auto;
+          padding:18px;
+          border-radius:14px;
+          width:min(520px,92%);
+          box-shadow:0 10px 30px rgba(0,0,0,.2);
+          position:relative;
+        }
+        .close-modal{
+          position:absolute; top:10px; right:12px;
+          font-size:22px; cursor:pointer; color:#666;
+        }
+        .form-group{ margin:10px 0; }
+        .form-group label{ display:block; font-weight:800; margin-bottom:6px; }
+        .form-control{
+          width:100%;
+          padding:10px 12px;
+          border:1px solid #d0d7de;
+          border-radius:12px;
+          outline:none;
+        }
+        .hint{ color:#666; font-size:.85rem; margin-top:6px; }
+        .actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:14px; flex-wrap:wrap; }
+        .btn-primary{
+          background:#1976d2; color:#fff; border:none;
+          padding:10px 14px; border-radius:12px; font-weight:900; cursor:pointer;
+        }
+    </style>
+</head>
+
+<body>
+<div class="dashboard-wrapper">
+
+    <!-- ===== SIDEBAR ===== -->
+    <div class="sidebar">
+        <div class="logo-modern-wrapper">
+            <div class="sukjai-icon">
+                <div class="box-tape"></div>
+                <div class="box-face">
+                    <div class="eye left"></div>
+                    <div class="eye right"></div>
+                    <div class="cheeks left"></div>
+                    <div class="cheeks right"></div>
+                    <div class="mouth"></div>
+                </div>
+            </div>
+            <div class="logo-text-wrapper">
+                <span class="brand-stock">STOCK</span>
+                <span class="brand-name">ร้านสุขใจ</span>
+            </div>
+        </div>
+
+        <ul class="sidebar-menu" id="sidebarMenu">
+            <!-- sidebar injected by JS -->
+        </ul>
+    </div>
+
+    <!-- ===== MAIN ===== -->
+    <div class="main-content">
+        <div class="page-header-wrapper">
+            <h1 class="page-title">จัดการผู้ใช้ (Admin)</h1>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>สถานะ</th>
+                    <th>จัดการ</th>
+                </tr>
+                </thead>
+                <tbody id="userTable"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ===== EDIT MODAL ===== -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeEditModal()">&times;</span>
+        <h2 style="margin:0 0 10px 0;">แก้ไขผู้ใช้</h2>
+
+        <div class="form-group">
+            <label>Username</label>
+            <input id="editUsername" class="form-control" autocomplete="off">
+        </div>
+
+        <div class="form-group">
+            <label>Email</label>
+            <input id="editEmail" class="form-control" autocomplete="off">
+        </div>
+
+        <div class="form-group">
+            <label>ตั้งรหัสผ่านใหม่ (ไม่บังคับ)</label>
+            <input id="editPassword" type="password" class="form-control" autocomplete="new-password">
+            <div class="hint">ถ้าใส่ ระบบจะ revoke token เดิมทั้งหมด และให้ผู้ใช้ login ใหม่</div>
+        </div>
+
+        <div class="actions">
+            <button class="btn" onclick="closeEditModal()">ยกเลิก</button>
+            <button class="btn-primary" onclick="submitEdit()">บันทึก</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function getAccessToken(){ return localStorage.getItem("accessToken")||""; }
+    function getUser(){ return JSON.parse(localStorage.getItem("user")||"null"); }
+    function logout(){ localStorage.clear(); location="login.html"; }
+
+    async function authFetch(url,opt={}){
+      const t=getAccessToken();
+      if(!t) logout();
+      const h=new Headers(opt.headers||{});
+      h.set("Authorization","Bearer "+t);
+      const r=await fetch(url,{...opt,headers:h});
+      if(r.status===401) logout();
+      return r;
+    }
+
+    const me=getUser();
+    if(!me || me.role!=="ADMIN"){
+      alert("หน้านี้สำหรับ ADMIN เท่านั้น");
+      logout();
+    }
+
+    let usersCache = [];
+    let editingUserId = null;
+
+    async function loadUsers(){
+      const r=await authFetch("/api/admin/users");
+      const users=await r.json();
+      usersCache = Array.isArray(users) ? users : [];
+
+      const tb=document.getElementById("userTable");
+      tb.innerHTML="";
+
+      usersCache.forEach(u=>{
+        const isMe = (Number(u.id) === Number(me.id));
+
+        tb.innerHTML+=`
+          <tr>
+            <td>${escapeHtml(u.username)}</td>
+            <td>${escapeHtml(u.email)}</td>
+            <td>
+              <select class="role-select" ${isMe ? "disabled" : ""} onchange="changeRole(${u.id},this.value)">
+                <option ${u.role==="STAFF"?"selected":""}>STAFF</option>
+                <option ${u.role==="OWNER"?"selected":""}>OWNER</option>
+                <option ${u.role==="ADMIN"?"selected":""}>ADMIN</option>
+              </select>
+            </td>
+            <td>
+              <span class="badge ${u.enabled ? "active" : "disabled"}">
+                ${u.enabled ? "ACTIVE" : "DISABLED"}
+              </span>
+            </td>
+            <td style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn btn-edit" onclick="openEditModal(${u.id})">
+                <i class="fas fa-pen"></i> แก้ไข
+              </button>
+
+              <button class="btn ${u.enabled?"btn-disable":"btn-enable"}" ${isMe ? "disabled" : ""} onclick="toggleUser(${u.id},${u.enabled})">
+                ${u.enabled ? "ปิดบัญชี" : "เปิดบัญชี"}
+              </button>
+
+              <button class="btn btn-del" ${isMe ? "disabled" : ""} onclick="deleteUser(${u.id})">
+                <i class="fas fa-trash"></i> ลบ
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    async function changeRole(id,role){
+      if(!confirm("เปลี่ยน role ผู้ใช้นี้?")) return;
+      const r = await authFetch(`/api/admin/users/${id}/role`,{
+        method:"PUT",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({ role })
+      });
+      const d = await r.json().catch(()=>null);
+      if(!r.ok){ alert(d?.message || "เปลี่ยน role ไม่สำเร็จ"); return; }
+      loadUsers();
+    }
+
+    async function toggleUser(id,enabled){
+      if(!confirm(enabled?"ปิดการใช้งานผู้ใช้?":"เปิดการใช้งานผู้ใช้?")) return;
+      const r = await authFetch(`/api/admin/users/${id}/enabled`,{ method:"PUT" });
+      const d = await r.json().catch(()=>null);
+      if(!r.ok){ alert(d?.message || "ทำรายการไม่สำเร็จ"); return; }
+      loadUsers();
+    }
+
+    function openEditModal(id){
+      const u = usersCache.find(x => Number(x.id) === Number(id));
+      if(!u){ alert("ไม่พบผู้ใช้"); return; }
+
+      editingUserId = id;
+      editUsername.value = u.username || "";
+      editEmail.value = u.email || "";
+      editPassword.value = "";
+      editModal.style.display = "block";
+    }
+
+    function closeEditModal(){
+      editModal.style.display = "none";
+      editingUserId = null;
+    }
+
+    async function submitEdit(){
+      if(!editingUserId){ closeEditModal(); return; }
+
+      const payload = {
+        username: editUsername.value,
+        email: editEmail.value,
+        password: editPassword.value
+      };
+
+      const r = await authFetch(`/api/admin/users/${editingUserId}`,{
+        method:"PUT",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const d = await r.json().catch(()=>null);
+      if(!r.ok){
+        alert(d?.message || "บันทึกไม่สำเร็จ");
+        return;
+      }
+
+      closeEditModal();
+      loadUsers();
+    }
+
+    async function deleteUser(id){
+      if(!confirm("ลบผู้ใช้นี้ถาวร?")) return;
+
+      const r = await authFetch(`/api/admin/users/${id}`,{ method:"DELETE" });
+      const d = await r.json().catch(()=>null);
+      if(!r.ok){
+        alert(d?.message || "ลบไม่สำเร็จ");
+        return;
+      }
+      loadUsers();
+    }
+
+    function escapeHtml(s){
+      return String(s ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    loadUsers();
+</script>
+
+<script src="components/sidebar.js"></script>
+</body>
+</html>

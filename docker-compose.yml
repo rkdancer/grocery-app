@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: grocery-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: grocery
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      TZ: Asia/Bangkok
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./db/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d grocery"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: .
+    container_name: grocery-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/grocery
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      TZ: Asia/Bangkok
+
+      # ✅ ให้ Spring เสิร์ฟ static จากโฟลเดอร์ที่ mount เข้าไป (ไม่ต้อง rebuild เวลาแก้หน้าเว็บ)
+      SPRING_WEB_RESOURCES_STATIC_LOCATIONS: "file:/app/static/,classpath:/static/"
+
+    volumes:
+      # ✅ mount frontend (ไฟล์ที่เพื่อนแก้)
+      - ./src/main/resources/static:/app/static
+
+      # ✅ mount uploads (ให้รูปที่เรียก /uploads/... หาเจอ)
+      #    (mount 2 จุด เพื่อให้ทั้งโค้ดที่เซฟลง /app/uploads และการเสิร์ฟผ่าน /uploads ทำงานคู่กัน)
+      - ./uploads:/app/uploads
+      - ./uploads:/app/static/uploads
+
+volumes:
+  pgdata:

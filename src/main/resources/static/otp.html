@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enter OTP - Stock ร้านสุขใจ</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+<div class="auth-container">
+    <div class="auth-card" style="text-align: left;">
+        <a href="forgot_password.html" style="text-decoration: none; color: #333; display: block; margin-bottom: 20px;">
+            <i class="fas fa-chevron-left"></i> Back
+        </a>
+
+        <h2 style="margin-bottom: 10px;">Enter OTP</h2>
+        <p style="color: #888; margin-bottom: 30px; font-size: 0.9rem;">
+            We have shared a code to your registered email address<br>
+            <strong id="emailPreview">-</strong>
+        </p>
+
+        <form id="otpForm">
+            <div class="otp-container">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="moveToNext(this, 'otp2')" id="otp1">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="moveToNext(this, 'otp3')" id="otp2">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="moveToNext(this, 'otp4')" id="otp3">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="moveToNext(this, 'otp5')" id="otp4">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]*" oninput="moveToNext(this, '')" id="otp5">
+            </div>
+
+            <button type="submit" class="btn-primary" id="verifyBtn">Verify</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // ฟังก์ชันให้เคอร์เซอร์ขยับไปช่องถัดไปอัตโนมัติ
+    function moveToNext(current, nextFieldID) {
+        // ให้ใส่ได้เฉพาะตัวเลข 1 ตัว
+        current.value = current.value.replace(/[^0-9]/g, '').slice(0, 1);
+
+        if (current.value.length >= 1 && nextFieldID) {
+            document.getElementById(nextFieldID).focus();
+        }
+    }
+
+    // ดึงข้อมูลจาก localStorage ที่หน้า forgot เก็บไว้
+    const otpRefId = localStorage.getItem("forgot_otpRefId");
+    const email = localStorage.getItem("forgot_email");
+    const emailPreview = document.getElementById("emailPreview");
+    emailPreview.textContent = email || "-";
+
+    // ถ้าไม่มี otpRefId ให้กลับไปหน้า forgot
+    if (!otpRefId) {
+        alert("ไม่พบข้อมูลอ้างอิง OTP กรุณากดส่ง OTP ใหม่");
+        window.location.href = "forgot_password.html";
+    }
+
+    const otpForm = document.getElementById('otpForm');
+    const verifyBtn = document.getElementById('verifyBtn');
+
+    otpForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const otp =
+            (document.getElementById('otp1').value || '') +
+            (document.getElementById('otp2').value || '') +
+            (document.getElementById('otp3').value || '') +
+            (document.getElementById('otp4').value || '') +
+            (document.getElementById('otp5').value || '');
+
+        if (otp.length !== 5) {
+            alert("กรุณากรอก OTP ให้ครบ 5 หลัก");
+            return;
+        }
+
+        verifyBtn.disabled = true;
+        verifyBtn.textContent = "Verifying...";
+
+        try {
+            const res = await fetch("/api/auth/forgot/verify-otp", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    otpRefId: Number(otpRefId),
+                    otp: otp
+                })
+            });
+
+            const data = await res.json().catch(() => null);
+
+            if (!res.ok || !data?.success) {
+                alert(data?.message || "OTP ไม่ถูกต้อง");
+                return;
+            }
+
+            // ✅ เก็บ resetToken ไว้ใช้ในหน้า new_password.html
+            localStorage.setItem("forgot_resetToken", data.resetToken);
+
+            alert("ยืนยัน OTP สำเร็จ");
+            window.location.href = "new_password.html";
+
+        } catch (err) {
+            console.error(err);
+            alert("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ (ตรวจว่า backend รันอยู่ไหม)");
+        } finally {
+            verifyBtn.disabled = false;
+            verifyBtn.textContent = "Verify";
+        }
+    });
+</script>
+</body>
+</html>

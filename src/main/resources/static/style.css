@@ -1,0 +1,725 @@
+@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;700&display=swap');
+
+:root {
+    --bg-blue: #e3f2fd;
+    --primary: #1976d2;
+    --text-dark: #333;
+    --card-bg: #fff;
+    --sidebar-width: 250px;
+    --btn-blue: #0288d1;
+    --btn-yellow: #fbc02d;
+    --btn-red: #d32f2f;
+    --status-red: #e57373;
+    --status-green: #a5d6a7;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Kanit', sans-serif;
+}
+
+body {
+    background-color: var(--bg-blue);
+    min-height: 100vh;
+    display: flex;
+}
+
+/* --- Auth Pages --- */
+.auth-container {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.auth-card {
+    background: white;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    width: 400px;
+    text-align: center;
+}
+
+.logo-section img {
+    height: 60px;
+    margin-bottom: 20px;
+}
+
+.logo-text {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-left: 10px;
+    vertical-align: middle;
+}
+
+.form-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #90caf9;
+    background-color: #fbfdff;
+    border-radius: 5px;
+    outline: none;
+    transition: all 0.3s;
+}
+
+.form-control:focus {
+    border-color: #1976d2;
+    background-color: #fff;
+    box-shadow: 0 0 5px rgba(25, 118, 210, 0.3);
+}
+
+/* เพิ่ม CSS ตกแต่ง Dropdown เลือก Role ให้มีลูกศรสวยๆ */
+select.form-control {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%231976d2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 12px;
+    padding-right: 30px;
+}
+
+/* --- ส่วน OTP ที่เพิ่มเข้ามา --- */
+.otp-container {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin: 25px 0;
+}
+
+.otp-input {
+    width: 50px;
+    height: 50px;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    border: 1px solid #90caf9;
+    border-radius: 8px;
+    background-color: #fbfdff;
+    outline: none;
+    transition: all 0.3s;
+}
+
+.otp-input:focus {
+    border-color: var(--primary);
+    background-color: #fff;
+    box-shadow: 0 0 5px rgba(25, 118, 210, 0.3);
+    transform: translateY(-3px);
+}
+
+/* -------------------------- */
+
+.fa-eye, .fa-eye-slash {
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.fa-eye:hover, .fa-eye-slash:hover {
+    color: var(--primary) !important;
+}
+
+.btn-primary {
+    width: 100%;
+    padding: 12px;
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: #1565c0;
+}
+
+.auth-options {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    margin-bottom: 20px;
+}
+
+/* --- Dashboard Layout --- */
+.dashboard-wrapper {
+    display: flex;
+    width: 100%;
+}
+
+.sidebar {
+    width: var(--sidebar-width);
+    background-color: #cfe8fc;
+    padding: 20px;
+    height: 100vh;
+    position: fixed;
+}
+
+.sidebar-menu {
+    margin-top: 40px;
+    list-style: none;
+}
+
+.sidebar-menu li {
+    margin-bottom: 20px;
+}
+
+.sidebar-menu a {
+    text-decoration: none;
+    color: #555;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.sidebar-menu a.active, .sidebar-menu a:hover {
+    background-color: rgba(255,255,255,0.5);
+    color: var(--text-dark);
+    font-weight: 500;
+}
+
+.main-content {
+    margin-left: var(--sidebar-width);
+    flex: 1;
+    padding: 40px;
+    background-color: white;
+    min-height: 100vh;
+    position: relative;
+}
+
+h1.page-title {
+    text-align: center;
+    margin-bottom: 40px;
+    font-size: 1.8rem;
+}
+
+.back-btn {
+    position: absolute;
+    bottom: 40px;
+    left: 40px;
+    font-size: 2rem;
+    color: black;
+    text-decoration: none;
+    border: 2px solid black;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.next-btn {
+    position: absolute;
+    bottom: 40px;
+    right: 40px;
+    font-size: 2rem;
+    color: black;
+    text-decoration: none;
+    border: 2px solid black;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* --- Grid Layout --- */
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(3, 250px);
+    gap: 30px;
+    justify-content: center;
+    padding-bottom: 40px;
+}
+
+.card-item {
+    border: 1px solid #eee;
+    border-radius: 10px;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    background: white;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.card-item:hover {
+    transform: translateY(-5px);
+}
+
+.card-item img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+/* Product List specific */
+.header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+.search-box {
+    display: flex;
+    gap: 10px;
+}
+
+/* --- ส่วนที่มีการแก้ไข --- */
+.action-buttons {
+    display: flex;
+    justify-content: center; /* เปลี่ยนเป็น center ให้ปุ่มอยู่ตรงกลาง */
+    gap: 10px;               /* เพิ่มระยะห่างระหว่างปุ่ม */
+    margin-top: 10px;
+}
+
+.btn-sm {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-decoration: none;
+}
+/* -------------------- */
+
+.btn-blue { background: var(--btn-blue); }
+.btn-yellow { background: var(--btn-yellow); }
+.btn-red { background: var(--btn-red); }
+
+/* Product Detail */
+.detail-layout {
+    display: flex;
+    gap: 40px;
+    justify-content: center;
+}
+.product-image-lg {
+    width: 300px;
+    padding: 20px;
+    border: 1px solid #eee;
+    border-radius: 10px;
+}
+.product-image-lg img {
+    width: 100%;
+}
+.status-box {
+    width: 150px;
+    border: 1px solid #333;
+    text-align: center;
+}
+.status-header {
+    background: #fff9c4;
+    padding: 10px;
+    border-bottom: 1px solid #333;
+    font-weight: bold;
+}
+.status-body {
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+}
+.status-red { background-color: var(--status-red); }
+.status-green { background-color: var(--status-green); }
+
+.detail-form {
+    max-width: 600px;
+    margin: 30px auto;
+    border: 1px solid #333;
+    padding: 20px;
+}
+.detail-row {
+    display: flex;
+    margin-bottom: 15px;
+    align-items: center;
+}
+.detail-row label {
+    width: 150px;
+    font-weight: bold;
+}
+.detail-row input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+/* Report Chart */
+.chart-container {
+    height: 300px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-around;
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 20px;
+}
+.bar {
+    background-color: #7986cb;
+    width: 60px;
+    text-align: center;
+    color: #333;
+    position: relative;
+}
+.bar span {
+    position: absolute;
+    bottom: -25px;
+    width: 100%;
+    font-size: 0.8rem;
+}
+/* --- ส่วนที่เพิ่มใหม่สำหรับปุ่ม Add และ Modal --- */
+
+/* Wrapper สำหรับจัดตำแหน่งหัวข้อและปุ่ม */
+.page-header-wrapper {
+    position: relative;
+    margin-bottom: 40px;
+    height: 50px; /* จองพื้นที่ความสูงให้พอดีกับปุ่มและหัวข้อ */
+}
+
+/* ปรับ h1 เดิมให้อยู่ตรงกลางเหมือนเดิม แต่ลบ margin-bottom ออกเพราะ Wrapper คุมแล้ว */
+.page-header-wrapper .page-title {
+    margin-bottom: 0;
+    line-height: 50px; /* จัดกึ่งกลางแนวตั้ง */
+}
+
+/* ปุ่มเพิ่มสินค้า มุมขวาบน */
+.btn-add-category {
+    position: absolute;
+    right: 0;
+    top: 0;
+    background-color: var(--btn-yellow); /* ใช้สีเหลืองตาม Theme */
+    color: #333;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 25px; /* ปุ่มมน */
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-add-category:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    background-color: #fdd835;
+}
+
+/* --- Modal Styles (หน้าต่างเด้ง) --- */
+.modal {
+    display: none; /* ซ่อนไว้ก่อน */
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5); /* พื้นหลังสีดำจางๆ */
+    backdrop-filter: blur(4px); /* เบลอฉากหลังเล็กน้อย */
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 10% auto; /* จัดกึ่งกลางแนวตั้ง */
+    padding: 30px;
+    border: 1px solid #888;
+    width: 100%;
+    max-width: 500px; /* ความกว้างสูงสุด */
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    position: relative;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.close-modal {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    position: absolute;
+    right: 20px;
+    top: 15px;
+}
+
+.close-modal:hover,
+.close-modal:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.modal h2 {
+    text-align: center;
+    margin-bottom: 25px;
+    color: var(--primary);
+}
+
+.modal-form .form-group {
+    margin-bottom: 20px;
+}
+
+/* ตกแต่ง Input file */
+.file-upload-wrapper {
+    position: relative;
+    height: 50px;
+    border: 2px dashed #90caf9;
+    border-radius: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #fbfdff;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+.file-upload-wrapper:hover {
+    background-color: #e3f2fd;
+    border-color: var(--primary);
+}
+.file-upload-wrapper input[type="file"] {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+.file-upload-label {
+    color: var(--primary);
+    pointer-events: none; /* ให้คลิกทะลุไปโดน input */
+}
+.success-icon-wrapper {
+    margin-bottom: 25px;
+}
+
+.success-icon {
+    font-size: 5rem;
+    color: #4caf50; /* สีเขียว */
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+    0% { transform: scale(0); opacity: 0; }
+    80% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+}
+/* ===== Pagination (Standard Dashboard) ===== */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 25px;
+    padding-bottom: 10px;
+}
+
+.pagination .page-btn {
+    min-width: 38px;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid #90caf9;
+    background: #fff;
+    color: var(--primary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.pagination .page-btn:hover {
+    background: #e3f2fd;
+    transform: translateY(-1px);
+}
+
+.pagination .page-btn.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+
+.pagination .page-btn.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+.pagination .page-btn.nav {
+    min-width: 90px;
+    justify-content: center;
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+}
+.hidden-by-role {
+    display: none !important;
+}
+/* --- New Logo Styles --- */
+.logo-modern-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+/* ตัวกล่องน้องสุขใจ */
+.sukjai-icon {
+    width: 65px;
+    height: 65px;
+    background-color: var(--btn-yellow); /* สีเหลืองธีมเดิม */
+    border-radius: 14px;
+    position: relative;
+    box-shadow: 0 4px 10px rgba(251, 192, 45, 0.4);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
+}
+
+/* เอฟเฟกต์ตอนเอาเมาส์ชี้ น้องจะเด้งดึ๋ง */
+.sukjai-icon:hover {
+    transform: scale(1.1) rotate(-5deg);
+}
+
+/* เทปปิดกล่อง (สีฟ้าธีม) */
+.box-tape {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px;
+    height: 25px;
+    background-color: rgba(255, 255, 255, 0.4);
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
+
+/* จัดตำแหน่งหน้าตา */
+.box-face {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -10%);
+    width: 100%;
+    height: 100%;
+}
+
+/* ดวงตา */
+.eye {
+    width: 7px;
+    height: 7px;
+    background-color: #3e2723; /* สีน้ำตาลเข้ม */
+    border-radius: 50%;
+    position: absolute;
+    top: 45%;
+    animation: blink 4s infinite; /* เพิ่มอนิเมชันกระพริบตา */
+}
+.eye.left { left: 18px; }
+.eye.right { right: 18px; }
+
+/* แก้มแดง (เพิ่มความน่ารัก) */
+.cheeks {
+    width: 8px;
+    height: 5px;
+    background-color: #ff8a80;
+    border-radius: 50%;
+    position: absolute;
+    top: 58%;
+    opacity: 0.6;
+}
+.cheeks.left { left: 15px; }
+.cheeks.right { right: 15px; }
+
+/* ปากยิ้ม */
+.mouth {
+    width: 14px;
+    height: 7px;
+    border-bottom: 2.5px solid #3e2723;
+    border-radius: 0 0 10px 10px;
+    position: absolute;
+    top: 52%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* ส่วนข้อความ */
+.logo-text-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.1;
+}
+
+.brand-stock {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--primary); /* สีฟ้า */
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.brand-name {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #333;
+}
+
+/* อนิเมชันกระพริบตา */
+@keyframes blink {
+    0%, 96%, 100% { transform: scaleY(1); }
+    98% { transform: scaleY(0.1); }
+}
+/* ย่อโลโก้เฉพาะใน Sidebar เพื่อความสวยงาม */
+.sidebar .sukjai-icon {
+    width: 50px;
+    height: 50px;
+}
+.sidebar .logo-text-wrapper .brand-name {
+    font-size: 1.2rem;
+}
+.sidebar .logo-modern-wrapper {
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+/* ปรับตำแหน่งเทปและหน้าตาให้สมส่วนเมื่อย่อลง */
+.sidebar .box-tape { width: 10px; height: 20px; }
+.sidebar .eye { width: 5px; height: 5px; top: 48%; }
+.sidebar .eye.left { left: 14px; }
+.sidebar .eye.right { right: 14px; }
+.sidebar .cheeks { width: 6px; height: 4px; top: 60%; }
+.sidebar .cheeks.left { left: 12px; }
+.sidebar .cheeks.right { right: 12px; }
+.sidebar .mouth { width: 10px; height: 5px; top: 54%; }

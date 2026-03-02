@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8" />
+    <title>Owner Dashboard | ร้านสุขใจ</title>
+
+    <link rel="stylesheet" href="style.css" />
+    <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body { background:#f5f7fb; }
+
+        .page-head{
+          display:flex;
+          align-items:flex-start;
+          justify-content:space-between;
+          gap:16px;
+          flex-wrap:wrap;
+          margin-bottom:18px;
+        }
+        .page-title2{ margin:0; font-size:1.8rem; }
+        .subtitle{ margin-top:6px; color:#666; font-size:.95rem; }
+
+        .quick-actions{
+          display:flex;
+          gap:10px;
+          flex-wrap:wrap;
+          align-items:center;
+          justify-content:flex-end;
+        }
+        .btn{
+          border:1px solid #d0d7de;
+          background:#fff;
+          padding:9px 14px;
+          border-radius:12px;
+          cursor:pointer;
+          font-weight:700;
+          display:flex;
+          align-items:center;
+          gap:8px;
+          transition:.15s;
+          user-select:none;
+        }
+        .btn:hover{ transform: translateY(-1px); box-shadow:0 6px 16px rgba(0,0,0,.06); }
+        .btn.primary{ background:#1976d2; border-color:#1976d2; color:#fff; }
+        .btn.warn{ background:#fff3e0; border-color:#ffcc80; color:#e65100; }
+        .btn.small{ padding:7px 12px; border-radius:12px; font-weight:800; }
+        .btn.small.active{ background:#1976d2; border-color:#1976d2; color:#fff; }
+
+        .kpi-grid{
+          display:grid;
+          grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+          gap:16px;
+          margin:16px 0 24px 0;
+        }
+        .kpi-card{
+          background:#fff;
+          border-radius:16px;
+          padding:16px;
+          box-shadow:0 4px 14px rgba(0,0,0,.08);
+          border:1px solid #eef2f7;
+        }
+        .kpi-top{
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          margin-bottom:10px;
+        }
+        .kpi-title{ color:#666; font-size:.92rem; font-weight:700; }
+        .kpi-ico{
+          width:38px;height:38px;border-radius:12px;
+          display:flex;align-items:center;justify-content:center;
+          background:#f3f7ff;color:#1976d2;
+        }
+        .kpi-value{ font-size:1.65rem; font-weight:800; }
+        .kpi-sub{ margin-top:6px; color:#777; font-size:.85rem; }
+
+        .growth-up{ color:#2e7d32; font-weight:800; }
+        .growth-down{ color:#c62828; font-weight:800; }
+
+        .section{
+          background:#fff;
+          border-radius:16px;
+          padding:18px;
+          box-shadow:0 4px 14px rgba(0,0,0,.08);
+          border:1px solid #eef2f7;
+          margin-bottom:18px;
+        }
+        .section-head{
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          flex-wrap:wrap;
+          gap:10px;
+          margin-bottom:12px;
+        }
+        .section-title{
+          font-size:1.1rem;
+          font-weight:800;
+          margin:0;
+        }
+        .toolbar{
+          display:flex;
+          gap:8px;
+          flex-wrap:wrap;
+          align-items:center;
+        }
+
+        table{ width:100%; border-collapse:collapse; table-layout:fixed; }
+        th,td{ padding:10px; border-bottom:1px solid #eee; }
+        th{ background:#f7fbff; text-align:left; }
+        td{ vertical-align:top; }
+        .right{ text-align:right; }
+        .muted{ color:#666; font-size:.9rem; }
+
+        .pill{
+          display:inline-flex;
+          align-items:center;
+          gap:6px;
+          padding:4px 10px;
+          border-radius:999px;
+          font-size:.78rem;
+          font-weight:800;
+          border:1px solid #d0d7de;
+          background:#fff;
+        }
+        .pill.blue{ border-color:#cfe8fc; background:#f1f7ff; color:#1565c0; }
+        .pill.orange{ border-color:#ffcc80; background:#fff7ed; color:#e65100; }
+
+        .lowstock-bar{
+          display:flex;
+          gap:10px;
+          flex-wrap:wrap;
+          align-items:center;
+          justify-content:space-between;
+          margin-bottom:12px;
+        }
+        .lowstock-left{
+          display:flex;
+          align-items:center;
+          gap:10px;
+          flex-wrap:wrap;
+        }
+        .search-box{
+          display:flex;
+          align-items:center;
+          gap:8px;
+          border:1px solid #d0d7de;
+          background:#fff;
+          padding:8px 10px;
+          border-radius:12px;
+          min-width:min(360px,100%);
+        }
+        .search-box input{
+          border:none;
+          outline:none;
+          width:100%;
+          background:transparent;
+        }
+
+        .link{
+          color:#1976d2;
+          font-weight:700;
+          text-decoration:none;
+        }
+        .link:hover{ text-decoration:underline; }
+
+        .chart-body{
+          position: relative;
+          height: 320px;
+        }
+        canvas{ width:100% !important; height:100% !important; }
+
+        .split-chart{
+          display:grid;
+          grid-template-columns: 280px 1fr;
+          gap:14px;
+          align-items:stretch;
+        }
+        @media (max-width: 980px){
+          .split-chart{ grid-template-columns: 1fr; }
+        }
+
+        .top5-box{
+          border-right:1px solid #eef2f7;
+          padding-right:14px;
+        }
+        @media (max-width: 980px){
+          .top5-box{ border-right:none; padding-right:0; border-bottom:1px solid #eef2f7; padding-bottom:12px; }
+        }
+
+        .top5-title{
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          margin-bottom:10px;
+        }
+        .top5-title h3{
+          margin:0;
+          font-size:0.95rem;
+          font-weight:900;
+        }
+        .top5-list{
+          display:flex;
+          flex-direction:column;
+          gap:10px;
+          margin-top:8px;
+        }
+        .top5-item{
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap:10px;
+        }
+        .dot{
+          width:10px; height:10px; border-radius:999px;
+          flex:0 0 auto;
+          background:#9aa4b2;
+        }
+        .top5-left{
+          display:flex;
+          align-items:center;
+          gap:10px;
+          min-width:0;
+        }
+        .top5-name{
+          font-weight:800;
+          font-size:.92rem;
+          white-space:nowrap;
+          overflow:hidden;
+          text-overflow:ellipsis;
+          max-width: 185px;
+        }
+        .top5-value{
+          font-weight:900;
+          font-size:.92rem;
+          white-space:nowrap;
+        }
+        .chart-right{
+          min-width:0;
+        }
+        .chart-title-row{
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap:10px;
+          margin-bottom:8px;
+          flex-wrap:wrap;
+        }
+        .select{
+          border:1px solid #d0d7de;
+          background:#fff;
+          border-radius:12px;
+          padding:7px 10px;
+          font-weight:800;
+          outline:none;
+          max-width: 220px;
+        }
+        .chart-body.taller{
+          height: 280px;
+        }
+
+        .sidebar-menu .logout-btn{
+          width:100%;
+          text-align:left;
+          border:none;
+          background:transparent;
+          color:inherit;
+          padding:10px 12px;
+          cursor:pointer;
+          display:flex;
+          gap:10px;
+          align-items:center;
+          border-radius:8px;
+        }
+        .sidebar-menu .logout-btn:hover{
+          background: rgba(255,255,255,0.5);
+        }
+    </style>
+</head>
+
+<body>
+<div class="dashboard-wrapper">
+    <div class="sidebar">
+        <div class="logo-modern-wrapper">
+            <div class="sukjai-icon">
+                <div class="box-tape"></div>
+                <div class="box-face">
+                    <div class="eye left"></div>
+                    <div class="eye right"></div>
+                    <div class="cheeks left"></div>
+                    <div class="cheeks right"></div>
+                    <div class="mouth"></div>
+                </div>
+            </div>
+            <div class="logo-text-wrapper">
+                <span class="brand-stock">STOCK</span>
+                <span class="brand-name">ร้านสุขใจ</span>
+            </div>
+        </div>
+
+        <ul class="sidebar-menu" id="sidebarMenu">
+            <!-- sidebar injected by JS -->
+        </ul>
+    </div>
+
+    <div class="main-content">
+
+        <div class="page-head">
+            <div>
+                <h1 class="page-title2">Owner Dashboard</h1>
+                <div class="subtitle">ภาพรวมยอดขายและสต็อกที่ต้องติดตามทุกวัน</div>
+            </div>
+
+            <div class="quick-actions">
+                <button class="btn primary" onclick="location.href='pos.html'">
+                    <i class="fas fa-cash-register"></i> ขายสินค้า
+                </button>
+                <button class="btn" onclick="location.href='categories.html'">
+                    <i class="fas fa-box"></i> จัดการสินค้า
+                </button>
+                <button class="btn" onclick="location.href='audit_logs.html'">
+                    <i class="fas fa-clock"></i> Audit Logs
+                </button>
+            </div>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-top">
+                    <div class="kpi-title">ยอดขายวันนี้</div>
+                    <div class="kpi-ico"><i class="fas fa-bolt"></i></div>
+                </div>
+                <div id="todaySales" class="kpi-value">-</div>
+                <div class="kpi-sub muted">อัปเดตจากการขายในระบบ</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-top">
+                    <div class="kpi-title">ยอดขายเดือนนี้</div>
+                    <div class="kpi-ico"><i class="fas fa-calendar-days"></i></div>
+                </div>
+                <div id="monthSales" class="kpi-value">-</div>
+                <div class="kpi-sub muted">ใช้ดูเทียบกับเดือนก่อน</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-top">
+                    <div class="kpi-title">ยอดขายเดือนที่แล้ว</div>
+                    <div class="kpi-ico"><i class="fas fa-calendar-minus"></i></div>
+                </div>
+                <div id="lastMonthSales" class="kpi-value">-</div>
+                <div class="kpi-sub muted">ฐานเปรียบเทียบการเติบโต</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-top">
+                    <div class="kpi-title">การเติบโตเดือนนี้</div>
+                    <div class="kpi-ico"><i class="fas fa-chart-line"></i></div>
+                </div>
+                <div id="monthGrowth" class="kpi-value">-</div>
+                <div class="kpi-sub muted">เทียบกับเดือนที่แล้ว</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-top">
+                    <div class="kpi-title">จำนวนสินค้า</div>
+                    <div class="kpi-ico"><i class="fas fa-cubes"></i></div>
+                </div>
+                <div id="totalProducts" class="kpi-value">-</div>
+                <div class="kpi-sub muted">จำนวนรายการสินค้าทั้งหมด</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-top">
+                    <div class="kpi-title">สินค้าใกล้หมด</div>
+                    <div class="kpi-ico"><i class="fas fa-triangle-exclamation"></i></div>
+                </div>
+                <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;">
+                    <div id="lowStockCount" class="kpi-value">-</div>
+                    <span class="pill orange"><i class="fas fa-bell"></i> ต้องดู</span>
+                </div>
+                <div class="kpi-sub muted">
+                    ดูรายการด้านล่างได้เลย (คงเหลือ ≤ <span id="lowLimitText">5</span>)
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ Product Mix -->
+        <div class="section" id="productMixSection">
+            <div class="section-head">
+                <h2 class="section-title">ยอดขาย แยกตามสินค้า ในภาพ</h2>
+                <div class="toolbar">
+                    <select class="select" id="metricSelect">
+                        <option value="amount" selected>ยอดขาย</option>
+                        <option value="qty">จำนวน</option>
+                    </select>
+
+                    <select class="select" id="categorySelect">
+                        <option value="">ทุกหมวด</option>
+                    </select>
+
+                    <button class="btn small warn" onclick="reloadProductMix()">
+                        <i class="fas fa-rotate"></i> รีเฟรช
+                    </button>
+                    <button class="btn small" id="btnToggleProductMix" onclick="toggleBody('productMixBody', productMixChart, 'btnToggleProductMix')">
+                        <i class="fas fa-eye-slash"></i> ซ่อน
+                    </button>
+                </div>
+            </div>
+
+            <div id="productMixBody" class="split-chart">
+                <div class="top5-box">
+                    <div class="top5-title">
+                        <h3>5 อันดับแรก</h3>
+                        <span class="muted" id="top5Hint">-</span>
+                    </div>
+                    <div class="top5-list" id="top5List">
+                        <div class="muted">กำลังโหลด...</div>
+                    </div>
+                </div>
+
+                <div class="chart-right">
+                    <div class="chart-title-row">
+                        <div class="muted" id="productMixTitle">ยอดขาย แยกตามสินค้า ในภาพ</div>
+                        <div class="muted" id="productMixRangeHint">-</div>
+                    </div>
+                    <div class="chart-body taller">
+                        <canvas id="productMixChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Low Stock -->
+        <div class="section" id="lowStockSection">
+            <div class="section-head">
+                <h2 class="section-title">สินค้าใกล้หมด</h2>
+                <div class="toolbar">
+                    <span class="pill orange"><i class="fas fa-triangle-exclamation"></i> Low Stock</span>
+                </div>
+            </div>
+
+            <div class="lowstock-bar">
+                <div class="lowstock-left">
+                    <div class="search-box">
+                        <i class="fas fa-search" style="color:#777"></i>
+                        <input id="lowStockSearch" placeholder="ค้นหาชื่อสินค้า / หมวด...">
+                    </div>
+                    <span class="muted" id="lowStockHint">-</span>
+                </div>
+
+                <div class="toolbar">
+                    <button class="btn small warn" onclick="refreshLowStock()">
+                        <i class="fas fa-rotate"></i> รีเฟรช
+                    </button>
+                    <button class="btn small" id="btnToggleLowStock" onclick="toggleBody('lowStockSectionBody', null, 'btnToggleLowStock')">
+                        <i class="fas fa-eye-slash"></i> ซ่อน
+                    </button>
+                </div>
+            </div>
+
+            <div id="lowStockSectionBody">
+                <table>
+                    <colgroup>
+                        <col style="width:42%">
+                        <col style="width:22%">
+                        <col style="width:12%">
+                        <col style="width:24%">
+                    </colgroup>
+                    <thead>
+                    <tr>
+                        <th>สินค้า</th>
+                        <th>หมวด</th>
+                        <th class="right">คงเหลือ</th>
+                        <th>จัดการ</th>
+                    </tr>
+                    </thead>
+                    <tbody id="lowStockTable">
+                    <tr><td colspan="4" class="muted">กำลังโหลด...</td></tr>
+                    </tbody>
+                </table>
+
+                <div class="muted" style="margin-top:10px;">
+                    * คลิก “ไปหน้าหมวด” เพื่อเข้าไปแก้ไข/เติมสต็อกในหมวดนั้น
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Selling -->
+        <div class="section">
+            <div class="section-head">
+                <h2 class="section-title">สินค้าขายดี (เดือนนี้)</h2>
+                <div class="toolbar">
+                    <span class="pill blue"><i class="fas fa-fire"></i> Top Selling</span>
+                </div>
+            </div>
+
+            <table>
+                <colgroup>
+                    <col style="width:60%">
+                    <col style="width:20%">
+                    <col style="width:20%">
+                </colgroup>
+                <thead>
+                <tr>
+                    <th>สินค้า</th>
+                    <th class="right">จำนวน</th>
+                    <th class="right">% ของ Top</th>
+                </tr>
+                </thead>
+                <tbody id="topSellingTable"></tbody>
+            </table>
+
+            <div class="muted" style="margin-top:10px;">
+                * ตารางนี้ช่วยให้รู้ว่าสินค้าไหนควรสต็อกเพิ่ม/ทำโปรโมชัน
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // ===== AUTH =====
+    const token = localStorage.getItem("accessToken");
+    const me = JSON.parse(localStorage.getItem("user") || "null");
+    if(!token || !me || !["OWNER","ADMIN"].includes(String(me.role||"").toUpperCase())){
+    location.href = "login.html";
+}
+
+    function logout(){ localStorage.clear(); location.href = "login.html"; }
+
+    async function authFetch(url, opt = {}){
+      const t = localStorage.getItem("accessToken");
+      if(!t) logout();
+
+      const h = new Headers(opt.headers || {});
+      h.set("Authorization", "Bearer " + t);
+
+      const r = await fetch(url, { ...opt, headers: h });
+      if(r.status === 401) logout();
+      return r;
+    }
+
+    // ===== DOM refs =====
+    const elTodaySales = document.getElementById("todaySales");
+    const elMonthSales = document.getElementById("monthSales");
+    const elLastMonthSales = document.getElementById("lastMonthSales");
+    const elMonthGrowth = document.getElementById("monthGrowth");
+    const elTotalProducts = document.getElementById("totalProducts");
+    const elLowStockCount = document.getElementById("lowStockCount");
+    const elLowLimitText = document.getElementById("lowLimitText");
+
+    function money(v){
+      const n = Number(v);
+      if(!Number.isFinite(n)) return "-";
+      return n.toLocaleString("th-TH") + " บาท";
+    }
+    function num(v){
+      const n = Number(v);
+      if(!Number.isFinite(n)) return 0;
+      return n;
+    }
+    function escapeHtml(s){
+      return String(s ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    // ===== common =====
+    function safeResizeChart(chart){
+      if(!chart) return;
+      requestAnimationFrame(() => {
+        try{
+          chart.resize();
+          chart.update("none");
+        }catch(e){}
+      });
+    }
+
+    function toggleBody(bodyId, chart, btnId){
+      const body = document.getElementById(bodyId);
+      const btn = btnId ? document.getElementById(btnId) : null;
+      const isHidden = (body.style.display === "none");
+
+      body.style.display = isHidden ? "block" : "none";
+
+      if(btn){
+        if(isHidden){
+          btn.innerHTML = `<i class="fas fa-eye-slash"></i> ซ่อน`;
+          safeResizeChart(chart);
+        }else{
+          btn.innerHTML = `<i class="fas fa-eye"></i> แสดง`;
+        }
+      }else{
+        if(isHidden) safeResizeChart(chart);
+      }
+    }
+
+    // =========================
+    // KPI Summary
+    // =========================
+    fetch("/api/dashboard/summary")
+      .then(r => authFetch("/api/dashboard/summary"))
+      .then(r => r.json())
+      .then(d => {
+        elTodaySales.innerText = money(d.todaySales);
+        elMonthSales.innerText = money(d.monthSales);
+        elLastMonthSales.innerText = (d.lastMonthSales !== undefined) ? money(d.lastMonthSales) : "-";
+        elTotalProducts.innerText = (d.totalProducts ?? "-");
+        elLowStockCount.innerText = (d.lowStockProducts ?? "-");
+
+        const g = Number(d.monthGrowthPercent);
+        if(Number.isFinite(g)){
+          if(g >= 0) elMonthGrowth.innerHTML = `<span class="growth-up">▲ ${g.toFixed(1)}%</span>`;
+          else elMonthGrowth.innerHTML = `<span class="growth-down">▼ ${Math.abs(g).toFixed(1)}%</span>`;
+        }else{
+          elMonthGrowth.innerText = "-";
+        }
+      })
+      .catch(() => {
+        elTodaySales.innerText = "-";
+        elMonthSales.innerText = "-";
+        elLastMonthSales.innerText = "-";
+        elMonthGrowth.innerText = "-";
+        elTotalProducts.innerText = "-";
+        elLowStockCount.innerText = "-";
+      });
+
+    // =========================
+    // TOP SELLING
+    // =========================
+    authFetch("/api/dashboard/top-selling")
+      .then(r => r.json())
+      .then(list => {
+        const tb = document.getElementById("topSellingTable");
+        tb.innerHTML = "";
+
+        if(!Array.isArray(list) || list.length === 0){
+          tb.innerHTML = `<tr><td colspan="3" class="muted">ยังไม่มีข้อมูล</td></tr>`;
+          return;
+        }
+
+        const top = list.slice(0, 10);
+        const maxQty = Math.max(...top.map(x => Number(x.qty) || 0), 1);
+
+        top.forEach(p => {
+          const qty = Number(p.qty) || 0;
+          const pct = (qty / maxQty) * 100;
+
+          tb.innerHTML += `
+            <tr>
+              <td>${escapeHtml(p.name ?? "-")}</td>
+              <td class="right"><b>${qty.toLocaleString("th-TH")}</b></td>
+              <td class="right">${pct.toFixed(0)}%</td>
+            </tr>
+          `;
+        });
+      })
+      .catch(() => {
+        const tb = document.getElementById("topSellingTable");
+        tb.innerHTML = `<tr><td colspan="3" class="muted">โหลดข้อมูลไม่สำเร็จ</td></tr>`;
+      });
+
+    // =========================
+    // LOW STOCK LIST (✅ FIXED)
+    // =========================
+    const LOW_STOCK_LIMIT = 5;
+    elLowLimitText.textContent = String(LOW_STOCK_LIMIT);
+
+    let lowStockAll = [];
+    let lowStockQ = "";
+
+    function refreshLowStock(){
+      loadLowStock().catch((e) => {
+        console.error(e);
+        const tb = document.getElementById("lowStockTable");
+        const hint = document.getElementById("lowStockHint");
+        tb.innerHTML = `<tr><td colspan="4" class="muted">โหลดข้อมูลไม่สำเร็จ</td></tr>`;
+        hint.textContent = "โหลดข้อมูลไม่สำเร็จ";
+      });
+    }
+
+    async function loadLowStock(){
+      const tb = document.getElementById("lowStockTable");
+      const hint = document.getElementById("lowStockHint");
+
+      tb.innerHTML = `<tr><td colspan="4" class="muted">กำลังโหลด...</td></tr>`;
+      hint.textContent = "กำลังดึงข้อมูลสินค้าใกล้หมด...";
+
+      lowStockAll = [];
+
+      const catRes = await authFetch(`/api/categories?page=0&size=1000&q=`);
+      const catData = await catRes.json().catch(() => null);
+      const categories = catData?.items || [];
+
+      if(!categories.length){
+        tb.innerHTML = `<tr><td colspan="4" class="muted">ยังไม่มีหมวดสินค้า</td></tr>`;
+        hint.textContent = "ไม่พบหมวดสินค้า";
+        elLowStockCount.innerText = "0";
+        return;
+      }
+
+      for(const c of categories){
+        const categoryId = c.id;
+        const categoryName = c.name || "-";
+
+        let page = 0;
+        let totalPages = 1;
+
+        while(page < totalPages){
+          const res = await authFetch(`/api/categories/${categoryId}/products?page=${page}&size=1000&q=`);
+          const data = await res.json().catch(() => null);
+
+          const items = data?.items || [];
+          totalPages = Number(data?.totalPages || 1);
+
+          for(const p of items){
+            const qty = Number(p.stockQty);
+            if(Number.isFinite(qty) && qty <= LOW_STOCK_LIMIT){
+              lowStockAll.push({
+                productId: p.id,
+                name: p.name || "-",
+                stockQty: qty,
+                categoryId,
+                categoryName
+              });
+            }
+          }
+          page++;
+        }
+      }
+
+      lowStockAll.sort((a,b)=> a.stockQty - b.stockQty || String(a.name).localeCompare(String(b.name)));
+      elLowStockCount.innerText = String(lowStockAll.length);
+      hint.textContent = `พบสินค้าใกล้หมด ${lowStockAll.length} รายการ`;
+
+      renderLowStock();
+    }
+
+    function renderLowStock(){
+      const tb = document.getElementById("lowStockTable");
+      const q = (lowStockQ || "").trim().toLowerCase();
+
+      const filtered = !q ? lowStockAll : lowStockAll.filter(x =>
+        `${x.name} ${x.categoryName}`.toLowerCase().includes(q)
+      );
+
+      if(filtered.length === 0){
+        tb.innerHTML = `<tr><td colspan="4" class="muted">ไม่พบสินค้าใกล้หมด</td></tr>`;
+        return;
+      }
+
+      const show = filtered.slice(0, 50);
+
+      tb.innerHTML = show.map(x => `
+        <tr>
+          <td><b>${escapeHtml(x.name)}</b></td>
+          <td>${escapeHtml(x.categoryName)}</td>
+          <td class="right">
+            <b style="color:${x.stockQty<=0?'#c62828':'#e65100'}">${x.stockQty}</b>
+          </td>
+          <td>
+            <a class="link" href="product_list.html?categoryId=${encodeURIComponent(x.categoryId)}&lowStock=1">
+              ไปหน้าหมวด (ใกล้หมด)
+            </a>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    document.getElementById("lowStockSearch").addEventListener("input", (e) => {
+      lowStockQ = e.target.value || "";
+      renderLowStock();
+    });
+
+    // =========================
+    // CATEGORY FILTER (for chart)
+    // =========================
+    let productMixChart = null;
+    let productMixDays = 7;
+
+    let selectedCategoryId = "";
+    let categoriesCache = [];
+
+    async function loadCategoryFilter(){
+      const sel = document.getElementById("categorySelect");
+      sel.innerHTML = `<option value="">ทุกหมวด</option>`;
+      try{
+        const r = await authFetch(`/api/categories?page=0&size=1000&q=`);
+        const d = await r.json().catch(()=>null);
+        const items = d?.items || [];
+
+        categoriesCache = items.map(x => ({ id: x.id, name: x.name }));
+
+        for(const c of categoriesCache){
+          const opt = document.createElement("option");
+          opt.value = String(c.id);
+          opt.textContent = c.name;
+          sel.appendChild(opt);
+        }
+      }catch(e){}
+    }
+
+    document.getElementById("categorySelect").addEventListener("change", (e) => {
+      selectedCategoryId = e.target.value || "";
+      reloadProductMix();
+    });
+
+    // =========================
+    // Product Mix Chart
+    // =========================
+    const DOT_COLORS = ["#6b7280","#84cc16","#3b82f6","#ec4899","#f59e0b"];
+
+    function reloadProductMix(){
+      loadProductMix(productMixDays).catch(() => {
+        document.getElementById("top5List").innerHTML = `<div class="muted">โหลดข้อมูลไม่สำเร็จ</div>`;
+        if(productMixChart) productMixChart.destroy();
+      });
+    }
+
+    async function loadProductMix(days){
+      const metric = document.getElementById("metricSelect").value;
+      const rangeHint = document.getElementById("productMixRangeHint");
+      const title = document.getElementById("productMixTitle");
+
+      if(selectedCategoryId){
+        const found = categoriesCache.find(x => String(x.id) === String(selectedCategoryId));
+        title.textContent = found ? `ยอดขาย แยกตามสินค้า (หมวด: ${found.name})` : `ยอดขาย แยกตามสินค้า (เลือกหมวด)`;
+      }else{
+        title.textContent = "ยอดขาย แยกตามสินค้า ในภาพ";
+      }
+
+      rangeHint.textContent = `${days} วันล่าสุด`;
+
+      // ✅ ถ้า backend ยังไม่รองรับ categoryId: เราจะ "ลองยิงมี categoryId ก่อน" ถ้า fail ค่อย retry แบบไม่มี
+      let url = `/api/dashboard/sales-daily-stacked?days=${days}&top=5`;
+      let r;
+
+      if(selectedCategoryId){
+        const urlWithCat = url + `&categoryId=${encodeURIComponent(selectedCategoryId)}`;
+        r = await authFetch(urlWithCat);
+        if(!r.ok){
+          r = await authFetch(url); // fallback
+        }
+      }else{
+        r = await authFetch(url);
+      }
+
+      if(!r.ok){
+        document.getElementById("top5List").innerHTML = `<div class="muted">ยังไม่มีข้อมูล</div>`;
+        if(productMixChart) productMixChart.destroy();
+        return;
+      }
+
+      const payload = await r.json().catch(() => null);
+      const parsed = normalizeProductMixPayload(payload);
+
+      if(!parsed || !parsed.labels.length){
+        document.getElementById("top5List").innerHTML = `<div class="muted">ยังไม่มีข้อมูล</div>`;
+        if(productMixChart) productMixChart.destroy();
+        return;
+      }
+
+      const seriesWithSum = parsed.series.map(s => ({
+        name: s.name,
+        data: s.data.map(num),
+        sum: (s.data || []).reduce((a,b)=> a + num(b), 0)
+      })).sort((a,b)=> b.sum - a.sum).slice(0,5);
+
+      const finalSeries = seriesWithSum.map(s => ({ name: s.name, data: s.data }));
+
+      renderTop5(finalSeries, metric);
+      renderStackedBar(parsed.labels, finalSeries, metric);
+    }
+
+    function normalizeProductMixPayload(payload){
+      if(payload?.dates && Array.isArray(payload.dates) && Array.isArray(payload.series)){
+        const labels = payload.dates.map(String);
+        const series = payload.series
+          .filter(x => x && x.name && Array.isArray(x.totals))
+          .map(x => ({
+            name: String(x.name),
+            data: x.totals.map(num)
+          }));
+        return { labels, series };
+      }
+      return null;
+    }
+
+    function renderTop5(series, metric){
+      const top5List = document.getElementById("top5List");
+      const top5Hint = document.getElementById("top5Hint");
+
+      top5Hint.textContent = (metric === "qty") ? "จำนวนรวม" : "ยอดรวม";
+
+      if(!series || !series.length){
+        top5List.innerHTML = `<div class="muted">ยังไม่มีข้อมูล</div>`;
+        return;
+      }
+
+      top5List.innerHTML = series.slice(0,5).map((s, i) => {
+        const color = DOT_COLORS[i] || "#9aa4b2";
+        const sum = (s.data || []).reduce((a,b)=> a + num(b), 0);
+        const val = (metric === "qty")
+          ? `${Math.round(sum).toLocaleString("th-TH")} ชิ้น`
+          : `${Math.round(sum).toLocaleString("th-TH")} ฿`;
+
+        return `
+          <div class="top5-item">
+            <div class="top5-left">
+              <span class="dot" style="background:${color}"></span>
+              <div class="top5-name" title="${escapeHtml(s.name)}">${escapeHtml(s.name)}</div>
+            </div>
+            <div class="top5-value">${val}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderStackedBar(labels, series, metric){
+      const ctx = document.getElementById("productMixChart");
+      if(productMixChart) productMixChart.destroy();
+
+      const datasets = series.slice(0,5).map((s, i) => ({
+        label: s.name,
+        data: (s.data || []).map(num),
+        backgroundColor: DOT_COLORS[i] || "#9aa4b2",
+        borderWidth: 0,
+        borderRadius: 6,
+        barPercentage: 0.72,
+        categoryPercentage: 0.72
+      }));
+
+      productMixChart = new Chart(ctx, {
+        type: "bar",
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (c) => {
+                  const v = num(c.raw);
+                  if(metric === "qty") return `${c.dataset.label}: ${Math.round(v).toLocaleString("th-TH")} ชิ้น`;
+                  return `${c.dataset.label}: ฿${Math.round(v).toLocaleString("th-TH")}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { stacked: true, grid: { display: false } },
+            y: {
+              stacked: true,
+              beginAtZero: true,
+              ticks: {
+                callback: (value) => {
+                  const v = Number(value);
+                  if(!Number.isFinite(v)) return value;
+                  if(metric === "qty") return v.toLocaleString("th-TH");
+                  return "฿" + v.toLocaleString("th-TH");
+                }
+              }
+            }
+          }
+        }
+      });
+
+      safeResizeChart(productMixChart);
+    }
+
+    document.getElementById("metricSelect").addEventListener("change", () => reloadProductMix());
+
+    // ===== INIT =====
+    (async function init(){
+      await loadCategoryFilter();
+      reloadProductMix();
+      refreshLowStock(); // ✅ สำคัญ: ให้สินค้าใกล้หมดโหลด
+    })();
+</script>
+
+<script src="components/sidebar.js"></script>
+</body>
+</html>

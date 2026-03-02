@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Audit Logs | ร้านสุขใจ</title>
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        body{ background:#f5f7fb; }
+
+        .filter-bar{
+            display:flex;
+            gap:12px;
+            flex-wrap:wrap;
+            margin-bottom:16px;
+        }
+        .filter-bar select,
+        .filter-bar input{
+            padding:8px 12px;
+            border-radius:10px;
+            border:1px solid #d0d7de;
+        }
+
+        .section{
+            background:#fff;
+            border-radius:16px;
+            padding:20px;
+            box-shadow:0 4px 14px rgba(0,0,0,.08);
+        }
+
+        table{
+            width:100%;
+            border-collapse:collapse;
+        }
+        th,td{
+            padding:10px;
+            border-bottom:1px solid #eee;
+            text-align:left;
+            font-size:.9rem;
+        }
+        th{ background:#f7fbff; }
+
+        .badge{
+            padding:4px 10px;
+            border-radius:20px;
+            font-size:.75rem;
+            font-weight:600;
+        }
+        .b-create{ background:#e3f2fd; color:#1565c0; }
+        .b-update{ background:#fff3e0; color:#ef6c00; }
+        .b-delete{ background:#fdecea; color:#c62828; }
+        .b-sell{ background:#e8f5e9; color:#2e7d32; }
+        .b-email{ background:#ede7f6; color:#512da8; }
+
+        .pagination{
+            display:flex;
+            gap:8px;
+            justify-content:center;
+            margin-top:20px;
+        }
+        .page-btn{
+            border:1px solid #d0d7de;
+            background:#fff;
+            padding:6px 12px;
+            border-radius:8px;
+            cursor:pointer;
+            font-weight:600;
+        }
+        .page-btn.active{
+            background:#1976d2;
+            color:#fff;
+            border-color:#1976d2;
+        }
+
+        .sidebar-menu .logout-btn{
+            width:100%;
+            border:none;
+            background:transparent;
+            padding:10px 12px;
+            cursor:pointer;
+            display:flex;
+            gap:10px;
+            align-items:center;
+            border-radius:10px;
+            font:inherit;
+        }
+        .sidebar-menu .logout-btn:hover{
+            background:rgba(25,118,210,.08);
+        }
+    </style>
+</head>
+
+<body>
+<div class="dashboard-wrapper">
+
+    <!-- ===== SIDEBAR ===== -->
+    <div class="sidebar">
+        <div class="logo-modern-wrapper">
+    <div class="sukjai-icon">
+        <div class="box-tape"></div>
+        <div class="box-face">
+            <div class="eye left"></div>
+            <div class="eye right"></div>
+            <div class="cheeks left"></div>
+            <div class="cheeks right"></div>
+            <div class="mouth"></div>
+        </div>
+    </div>
+    <div class="logo-text-wrapper">
+        <span class="brand-stock">STOCK</span>
+        <span class="brand-name">ร้านสุขใจ</span>
+    </div>
+</div>
+
+        <ul class="sidebar-menu">
+            <li>
+                <a href="owner_dashboard.html" class="sidebar-link">
+                    <i class="fas fa-chart-line"></i> แดชบอร์ด
+                </a>
+            </li>
+            <li>
+                <a href="categories.html" class="sidebar-link">
+                    <i class="fas fa-box"></i> สินค้า
+                </a>
+            </li>
+            <li>
+                <a href="pos.html" class="sidebar-link">
+                    <i class="fas fa-cash-register"></i> ขายสินค้า
+                </a>
+            </li>
+            <li>
+                <button class="sidebar-link logout-btn" onclick="logout()">
+                    <i class="fas fa-right-from-bracket"></i> Logout
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <!-- ===== MAIN ===== -->
+    <div class="main-content">
+        <h1 class="page-title">🕒 Audit Logs</h1>
+
+        <!-- FILTER -->
+        <div class="filter-bar">
+            <select id="actionFilter">
+                <option value="">ทุก Action</option>
+                <option>CREATE</option>
+                <option>UPDATE</option>
+                <option>DELETE</option>
+                <option>SELL</option>
+                <option>EMAIL</option>
+            </select>
+
+            <select id="roleFilter">
+                <option value="">ทุก Role</option>
+                <option>OWNER</option>
+                <option>STAFF</option>
+                <option>ADMIN</option>
+            </select>
+
+            <input id="searchInput" placeholder="ค้นหา user / target">
+            <button class="page-btn" onclick="applyFilter()">ค้นหา</button>
+            <button class="page-btn"
+                    onclick="exportAuditExcel()">
+                <i class="fas fa-file-excel"></i> Export Audit Log
+            </button>
+
+        </div>
+
+        <!-- TABLE -->
+        <div class="section">
+            <table>
+                <thead>
+                <tr>
+                    <th>เวลา</th>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>Action</th>
+                    <th>Target</th>
+                </tr>
+                </thead>
+                <tbody id="logTable"></tbody>
+            </table>
+
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const token=localStorage.getItem("accessToken");
+    const me=JSON.parse(localStorage.getItem("user")||"null");
+    if(!token||!me||me.role!=="OWNER") location.href="login.html";
+    const headers={Authorization:"Bearer "+token};
+
+    let logs=[];
+    let page=0;
+    const PAGE_SIZE=10;
+
+    function loadLogs(){
+        fetch("/api/dashboard/audit-logs",{headers})
+            .then(r=>r.json())
+            .then(d=>{
+                logs=d;
+                render();
+            });
+    }
+
+    function applyFilter(){
+        page=0;
+        render();
+    }
+
+    function render(){
+        const action=actionFilter.value;
+        const role=roleFilter.value;
+        const q=searchInput.value.toLowerCase();
+
+        let filtered=logs.filter(l=>{
+            if(action && l.action!==action) return false;
+            if(role && l.role!==role) return false;
+            if(q && !(`${l.username} ${l.target}`.toLowerCase().includes(q))) return false;
+            return true;
+        });
+
+        const start=page*PAGE_SIZE;
+        const items=filtered.slice(start,start+PAGE_SIZE);
+
+        logTable.innerHTML = items.map(l => `
+  <tr>
+    <td>${new Date(l.createdAt).toLocaleString()}</td>
+    <td>${l.username}</td>
+    <td>${l.role}</td>
+    <td>
+      <span class="badge b-${l.action.toLowerCase()}">
+        ${l.action}
+      </span>
+    </td>
+    <td>${l.target}</td>
+  </tr>
+`).join("");
+
+        renderPagination(filtered.length);
+    }
+
+    function renderPagination(total){
+        const p=document.getElementById("pagination");
+        p.innerHTML="";
+        const pages=Math.ceil(total/PAGE_SIZE);
+        for(let i=0;i<pages;i++){
+            const b=document.createElement("button");
+            b.className="page-btn"+(i===page?" active":"");
+            b.textContent=i+1;
+            b.onclick=()=>{page=i;render();};
+            p.appendChild(b);
+        }
+    }
+
+    function logout(){
+        localStorage.clear();
+        location.href="login.html";
+    }
+
+    loadLogs();
+    function exportAuditExcel(){
+    const token = localStorage.getItem("accessToken");
+    fetch("/api/audit-logs/export",{
+        headers:{ "Authorization":"Bearer "+token }
+    })
+    .then(res => res.blob())
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "audit_logs.xlsx";
+        a.click();
+        window.URL.revokeObjectURL(url);
+    });
+}
+</script>
+</body>
+</html>
