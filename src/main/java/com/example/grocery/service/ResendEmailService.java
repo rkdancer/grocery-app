@@ -1,68 +1,59 @@
 package com.example.grocery.service;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 
 @Service
 public class ResendEmailService {
 
     private final HttpClient http = HttpClient.newHttpClient();
 
-    @Value("${app.mail.resend.apiKey:${RESEND_API_KEY:}}")
-    private String apiKey;
+    private final String apiKey = System.getenv("RESEND_API_KEY");
+    private final String from = System.getenv().getOrDefault("RESEND_FROM", "onboarding@resend.dev");
 
-    @Value("${app.mail.resend.from:${RESEND_FROM:onboarding@resend.dev}}")
-    private String from;
-
-    public void sendText(String to, String subject, String text) {
+    public void sendOtp(String toEmail, String otp, int expireMin) {
         if (apiKey == null || apiKey.isBlank()) {
-            throw new RuntimeException("RESEND_API_KEY ยังไม่ได้ตั้งค่า");
-        }
-        if (to == null || to.isBlank()) {
-            throw new RuntimeException("Email ปลายทางว่าง");
+            throw new RuntimeException("Missing RESEND_API_KEY in environment");
         }
 
-        // escape JSON แบบง่าย ๆ
-        String safeSubject = jsonEscape(subject == null ? "" : subject);
-        String safeText = jsonEscape(text == null ? "" : text);
+        String subject = "OTP สำหรับรีเซ็ตรหัสผ่าน";
+        String text = "OTP ของคุณคือ: " + otp + "\nหมดอายุภายใน " + expireMin + " นาที";
 
-        String body = """
-            {
-              "from": "%s",
-              "to": ["%s"],
-              "subject": "%s",
-              "text": "%s"
-            }
-            """.formatted(from, to, safeSubject, safeText);
-
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create("https://api.resend.com/emails"))
-                .header("Authorization", "Bearer " + apiKey.trim())
-                .header("Content-Type", "application/json; charset=utf-8")
-                .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
-                .build();
+        // JSON แบบง่าย (หลีกเลี่ยง dependency เพิ่ม)
+        String json = "{"
+                + "\"from\":\"" + escape(from) + "\","
+                + "\"to\":[\"" + escape(toEmail) + "\"],"
+                + "\"subject\":\"" + escape(subject) + "\","
+                + "\"text\":\"" + escape(text) + "\""
+                + "}";
 
         try {
-            HttpResponse<String> resp = http.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-            int code = resp.statusCode();
-            if (code < 200 || code >= 300) {
-                throw new RuntimeException("Resend ส่งเมลไม่สำเร็จ: HTTP " + code + " => " + resp.body());
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.resend.com/emails"))
+                    .header("Authorization", "Bearer " + apiKey)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(json))
+                    .build();
+
+            HttpResponse<String> resp = http.send(req, HttpResponse.BodyHandlers.ofString());
+
+            if (resp.statusCode() < 200 || resp.statusCode() >= 300) {
+                throw new RuntimeException("Resend send failed: HTTP " + resp.statusCode() + " => " + resp.body());
             }
         } catch (Exception e) {
-            throw new RuntimeException("Resend ส่งเมลไม่สำเร็จ: " + e.getMessage(), e);
+            throw new RuntimeException("Resend send error: " + e.getMessage(), e);
         }
     }
 
-    private static String jsonEscape(String s) {
+    private static String escape(String s) {
+        if (s == null) return "";
         return s.replace("\\", "\\\\")
                 .replace("\"", "\\\"")
-                .replace("\r", "\\r")
-                .replace("\n", "\\n");
+                .replace("\n", "\\n")
+                .replace("\r", "");
     }
 }

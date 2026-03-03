@@ -33,11 +33,8 @@ public class ForgotPasswordService {
 
     private static final SecureRandom RNG = new SecureRandom();
 
-    // OTP settings
     private static final int OTP_EXPIRE_MIN = 5;
     private static final int MAX_VERIFY_FAIL = 5;
-
-    // Anti-spam
     private static final int COOLDOWN_SECONDS = 30;
 
     public ForgotPasswordResponse requestOtp(ForgotPasswordRequest req) {
@@ -97,8 +94,8 @@ public class ForgotPasswordService {
 
         rec = otpRepository.save(rec);
 
-        // ✅ ส่งเมลผ่าน Resend
-        sendOtpEmail(email, otpPlain);
+        // ✅ ส่ง OTP ผ่าน Resend
+        resendEmailService.sendOtp(email, otpPlain, OTP_EXPIRE_MIN);
 
         return ForgotPasswordResponse.builder()
                 .success(true)
@@ -189,11 +186,5 @@ public class ForgotPasswordService {
     private static String genOtp5() {
         int n = RNG.nextInt(100000);
         return String.format("%05d", n);
-    }
-
-    private void sendOtpEmail(String toEmail, String otp) {
-        String subject = "OTP สำหรับรีเซ็ตรหัสผ่าน";
-        String text = "OTP ของคุณคือ: " + otp + "\nหมดอายุภายใน " + OTP_EXPIRE_MIN + " นาที";
-        resendEmailService.sendText(toEmail, subject, text);
     }
 }
