@@ -22,14 +22,27 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
 
-        // ✅ public routes
+        // ✅ public routes (auth)
         if (path.startsWith("/api/auth/")) return true;
+
+        // ✅ public static + uploads
         if (path.startsWith("/uploads/")) return true;
 
-        // ✅ อนุญาต static pages (ถ้าคุณ serve ผ่าน spring)
-        if (path.endsWith(".html") || path.endsWith(".css") || path.endsWith(".js")) return true;
+        // ✅ allow landing + index
+        if ("/".equals(path)) return true;
+        if ("/index.html".equals(path)) return true;
 
-        // ที่เหลือให้ filter
+        // ✅ allow common public files
+        if ("/favicon.ico".equals(path)) return true;
+        if ("/error".equals(path)) return true;
+
+        // ✅ allow static resources served by Spring (extensions)
+        if (path.endsWith(".html") || path.endsWith(".css") || path.endsWith(".js")) return true;
+        if (path.endsWith(".png") || path.endsWith(".jpg") || path.endsWith(".jpeg") || path.endsWith(".gif")
+                || path.endsWith(".svg") || path.endsWith(".webp") || path.endsWith(".ico")) return true;
+        if (path.endsWith(".woff") || path.endsWith(".woff2") || path.endsWith(".ttf") || path.endsWith(".map")) return true;
+
+        // ที่เหลือให้ filter (API อื่น ๆ ต้องมี token)
         return false;
     }
 
@@ -54,9 +67,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             return;
         }
 
-        // เผื่อใช้ใน controller/service ต่อไป
         request.setAttribute("authUserId", userId);
-
         filterChain.doFilter(request, response);
     }
 
