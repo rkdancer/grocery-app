@@ -20,7 +20,7 @@ public class MailService {
     private final ObjectProvider<JavaMailSender> mailSenderProvider;
 
     /**
-     * ปิดได้ชั่วคราวเพื่อให้ deploy ผ่าน (Render ยังไม่ตั้งค่า SMTP)
+     * ปิดได้ชั่วคราวเพื่อให้ deploy ผ่าน
      * เปิดได้ด้วย env var: APP_MAIL_ENABLED=true
      */
     @Value("${app.mail.enabled:false}")
@@ -38,7 +38,6 @@ public class MailService {
 
         JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
         if (mailSender == null) {
-            // เปิด mail แล้ว แต่ไม่มี JavaMailSender = config ฝั่ง SMTP ยังไม่ครบ
             throw new IllegalStateException(
                     "Mail is enabled (app.mail.enabled=true) but JavaMailSender bean is missing. " +
                             "Please configure spring.mail.* (SMTP) or disable mail."
@@ -50,7 +49,7 @@ public class MailService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setTo(to);
-            helper.setSubject("⚠️ แจ้งเตือนสินค้าใกล้หมด - ร้านสุขใจ");
+            helper.setSubject("⚠️ แจ้งเตือนสินค้าใกล้หมด - Grocery System");
             helper.setText(buildHtml(products), true);
 
             mailSender.send(message);
@@ -62,29 +61,26 @@ public class MailService {
     private String buildHtml(List<Product> products) {
         StringBuilder sb = new StringBuilder();
 
-        sb.append("<html>");
-        sb.append("<body style='font-family:Kanit,sans-serif;'>");
+        sb.append("<html><body style='font-family:Arial,sans-serif;'>");
         sb.append("<h2 style='color:#d32f2f;'>⚠️ สินค้าใกล้หมด (คงเหลือ ≤ 5)</h2>");
 
-        sb.append("<table border='1' cellpadding='8' cellspacing='0' ")
-                .append("style='border-collapse:collapse;width:100%;'>");
-
-        sb.append("<tr style='background:#ffe0e0;'>")
-                .append("<th align='left'>สินค้า</th>")
-                .append("<th align='center'>คงเหลือ</th>")
-                .append("<th align='right'>ราคาขาย</th>")
-                .append("</tr>");
+        sb.append("<table border='1' cellpadding='8' cellspacing='0' style='border-collapse:collapse;width:100%;'>");
+        sb.append("<tr style='background:#f5f5f5;'>");
+        sb.append("<th align='left'>สินค้า</th>");
+        sb.append("<th align='center'>คงเหลือ</th>");
+        sb.append("<th align='right'>ราคาขาย</th>");
+        sb.append("</tr>");
 
         for (Product p : products) {
-            sb.append("<tr>")
-                    .append("<td>").append(p.getName()).append("</td>")
-                    .append("<td align='center' style='color:red;font-weight:bold;'>")
+            sb.append("<tr>");
+            sb.append("<td>").append(escapeHtml(p.getName())).append("</td>");
+            sb.append("<td align='center' style='color:red;font-weight:bold;'>")
                     .append(p.getStockQty())
-                    .append("</td>")
-                    .append("<td align='right'>")
-                    .append(p.getPrice())
-                    .append("</td>")
-                    .append("</tr>");
+                    .append("</td>");
+            sb.append("<td align='right'>")
+                    .append(p.getSellPrice())
+                    .append("</td>");
+            sb.append("</tr>");
         }
 
         sb.append("</table>");
@@ -92,5 +88,14 @@ public class MailService {
         sb.append("</body></html>");
 
         return sb.toString();
+    }
+
+    private String escapeHtml(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
     }
 }
