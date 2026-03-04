@@ -1,59 +1,55 @@
 package com.example.grocery.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
-
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 
 @Service
 public class ResendEmailService {
 
-    private final HttpClient http = HttpClient.newHttpClient();
+    private static final Logger log = LoggerFactory.getLogger(ResendEmailService.class);
 
-    private final String apiKey = System.getenv("RESEND_API_KEY");
-    private final String from = System.getenv().getOrDefault("RESEND_FROM", "onboarding@resend.dev");
+    private final ObjectProvider<JavaMailSender> mailSenderProvider;
+
+    @Value("${app.mail.enabled:false}")
+    private boolean mailEnabled;
+
+    @Value("${app.mail.from:no-reply@example.com}")
+    private String fromEmail;
+
+    public ResendEmailService(ObjectProvider<JavaMailSender> mailSenderProvider) {
+        this.mailSenderProvider = mailSenderProvider;
+    }
 
     public void sendOtp(String toEmail, String otp, int expireMin) {
-        if (apiKey == null || apiKey.isBlank()) {
-            throw new RuntimeException("Missing RESEND_API_KEY in environment");
+        if (!mailEnabled) {
+            throw new RuntimeException("Mail feature is disabled. Please set APP_MAIL_ENABLED=true");
+        }
+
+        JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
+        if (mailSender == null) {
+            throw new RuntimeException("JavaMailSender bean not found. Please configure SPRING_MAIL_* (SMTP).");
         }
 
         String subject = "OTP สำหรับรีเซ็ตรหัสผ่าน";
         String text = "OTP ของคุณคือ: " + otp + "\nหมดอายุภายใน " + expireMin + " นาที";
 
-        // JSON แบบง่าย (หลีกเลี่ยง dependency เพิ่ม)
-        String json = "{"
-                + "\"from\":\"" + escape(from) + "\","
-                + "\"to\":[\"" + escape(toEmail) + "\"],"
-                + "\"subject\":\"" + escape(subject) + "\","
-                + "\"text\":\"" + escape(text) + "\""
-                + "}";
-
         try {
-            HttpRequest req = HttpRequest.newBuilder()
-                    .uri(URI.create("https://api.resend.com/emails"))
-                    .header("Authorization", "Bearer " + apiKey)
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(json))
-                    .build();
+            SimpleMailMessage msg = new SimpleMailMessage();
+            msg.setFrom(fromEmail);
+            msg.setTo(toEmail);
+            msg.setSubject(subject);
+            msg.setText(text);
 
-            HttpResponse<String> resp = http.send(req, HttpResponse.BodyHandlers.ofString());
-
-            if (resp.statusCode() < 200 || resp.statusCode() >= 300) {
-                throw new RuntimeException("Resend send failed: HTTP " + resp.statusCode() + " => " + resp.body());
-            }
+            mailSender.send(msg);
+            log.info("OTP email sent to {}", toEmail);
         } catch (Exception e) {
-            throw new RuntimeException("Resend send error: " + e.getMessage(), e);
+            log.error("Failed to send OTP email to {}: {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Send OTP email failed: " + e.getMessage(), e);
         }
-    }
-
-    private static String escape(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "");
     }
 }
