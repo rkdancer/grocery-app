@@ -1,85 +1,107 @@
 package com.example.grocery.service;
 
 import com.example.grocery.entity.Product;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class ResendEmailService {
 
-    private final HttpClient http = HttpClient.newHttpClient();
+    private static final Logger log = LoggerFactory.getLogger(ResendEmailService.class);
 
-    private final String apiKey = System.getenv("RESEND_API_KEY");
+    private final RestClient restClient;
 
-    // ตั้งค่า default ให้ก่อน (แนะนำให้ override ด้วย env บน Render)
-    private final String from = System.getenv().getOrDefault("RESEND_FROM", "onboarding@resend.dev");
+    @Value("${app.mail.enabled:false}")
+    private boolean mailEnabled;
 
+    @Value("${app.mail.from:no-reply@example.com}")
+    private String fromEmail;
+
+    @Value("${brevo.api.key:}")
+    private String brevoApiKey;
+
+    public ResendEmailService(RestClient.Builder restClientBuilder) {
+        this.restClient = restClientBuilder
+                .baseUrl("https://api.brevo.com/v3")
+                .build();
+    }
+
+    // ===== OTP (Forgot password) =====
     public void sendOtp(String toEmail, String otp, int expireMin) {
-        requireApiKey();
+        if (!mailEnabled) {
+            throw new RuntimeException("Mail feature is disabled. Set APP_MAIL_ENABLED=true");
+        }
+        if (brevoApiKey == null || brevoApiKey.isBlank()) {
+            throw new RuntimeException("Missing BREVO_API_KEY in environment");
+        }
 
         String subject = "OTP สำหรับรีเซ็ตรหัสผ่าน";
         String text = "OTP ของคุณคือ: " + otp + "\nหมดอายุภายใน " + expireMin + " นาที";
 
-        String json = "{"
-                + "\"from\":\"" + escape(from) + "\","
-                + "\"to\":[\"" + escape(toEmail) + "\"],"
-                + "\"subject\":\"" + escape(subject) + "\","
-                + "\"text\":\"" + escape(text) + "\""
-                + "}";
+        Map<String, Object> payload = Map.of(
+                "sender", Map.of("email", fromEmail),
+                "to", List.of(Map.of("email", toEmail)),
+                "subject", subject,
+                "textContent", text
+        );
 
-        postToResend(json);
-    }
+        try {
+            restClient.post()
+                    .uri("/smtp/email")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header("api-key", brevoApiKey)
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
 
-    // ✅ NEW: ส่งเมลแจ้งสินค้าใกล้หมด (HTML)
-    public void sendLowStockEmail(String toEmail, List<Product> products, int lowStockLimit) {
-        requireApiKey();
-
-        String subject = "⚠️ แจ้งเตือนสินค้าใกล้หมด - ร้านสุขใจ";
-
-        String html = buildLowStockHtml(products, lowStockLimit);
-
-        // เผื่อ client บางตัวไม่รองรับ html
-        String text = buildLowStockText(products, lowStockLimit);
-
-        String json = "{"
-                + "\"from\":\"" + escape(from) + "\","
-                + "\"to\":[\"" + escape(toEmail) + "\"],"
-                + "\"subject\":\"" + escape(subject) + "\","
-                + "\"text\":\"" + escape(text) + "\","
-                + "\"html\":\"" + escape(html) + "\""
-                + "}";
-
-        postToResend(json);
-    }
-
-    private void requireApiKey() {
-        if (apiKey == null || apiKey.isBlank()) {
-            throw new RuntimeException("Missing RESEND_API_KEY in environment");
+            log.info("OTP email sent via Brevo API to {}", toEmail);
+        } catch (Exception e) {
+            log.error("Failed to send OTP via Brevo API to {}: {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Send OTP email failed: " + e.getMessage(), e);
         }
     }
 
-    private void postToResend(String json) {
+    // ===== NEW: Low-stock email =====
+    public void sendLowStockEmail(String toEmail, List<Product> products, int lowStockLimit) {
+        if (!mailEnabled) {
+            throw new RuntimeException("Mail feature is disabled. Set APP_MAIL_ENABLED=true");
+        }
+        if (brevoApiKey == null || brevoApiKey.isBlank()) {
+            throw new RuntimeException("Missing BREVO_API_KEY in environment");
+        }
+
+        String subject = "⚠️ แจ้งเตือนสินค้าใกล้หมด (คงเหลือ ≤ " + lowStockLimit + ")";
+        String text = buildLowStockText(products, lowStockLimit);
+        String html = buildLowStockHtml(products, lowStockLimit);
+
+        Map<String, Object> payload = Map.of(
+                "sender", Map.of("email", fromEmail),
+                "to", List.of(Map.of("email", toEmail)),
+                "subject", subject,
+                "textContent", text,
+                "htmlContent", html
+        );
+
         try {
-            HttpRequest req = HttpRequest.newBuilder()
-                    .uri(URI.create("https://api.resend.com/emails"))
-                    .header("Authorization", "Bearer " + apiKey)
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(json))
-                    .build();
+            restClient.post()
+                    .uri("/smtp/email")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header("api-key", brevoApiKey)
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
 
-            HttpResponse<String> resp = http.send(req, HttpResponse.BodyHandlers.ofString());
-
-            if (resp.statusCode() < 200 || resp.statusCode() >= 300) {
-                throw new RuntimeException("Resend send failed: HTTP " + resp.statusCode() + " => " + resp.body());
-            }
-
+            log.info("Low-stock email sent via Brevo API to {}", toEmail);
         } catch (Exception e) {
-            throw new RuntimeException("Resend send error: " + e.getMessage(), e);
+            log.error("Failed to send low-stock via Brevo API to {}: {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Send low-stock email failed: " + e.getMessage(), e);
         }
     }
 
@@ -87,21 +109,23 @@ public class ResendEmailService {
         StringBuilder sb = new StringBuilder();
         sb.append("⚠️ สินค้าใกล้หมด (คงเหลือ ≤ ").append(lowStockLimit).append(")\n\n");
         for (Product p : products) {
-            sb.append("- ").append(nullSafe(p.getName()))
+            sb.append("- ")
+                    .append(nullSafe(p.getName()))
                     .append(" | คงเหลือ: ").append(nullSafe(p.getStockQty()))
                     .append(" | ราคาขาย: ").append(nullSafe(p.getSellPrice()))
                     .append("\n");
         }
-        sb.append("\nระบบ Stock ร้านสุขใจ");
+        sb.append("\nGrocery System");
         return sb.toString();
     }
 
     private String buildLowStockHtml(List<Product> products, int lowStockLimit) {
         StringBuilder sb = new StringBuilder();
-        sb.append("<html><body style='font-family:Kanit,sans-serif;'>");
+        sb.append("<html><body style='font-family:Arial,sans-serif;'>");
         sb.append("<h2 style='color:#d32f2f;'>⚠️ สินค้าใกล้หมด (คงเหลือ ≤ ").append(lowStockLimit).append(")</h2>");
+
         sb.append("<table border='1' cellpadding='8' cellspacing='0' style='border-collapse:collapse;width:100%;'>");
-        sb.append("<tr style='background:#ffe0e0;'>")
+        sb.append("<tr style='background:#f5f5f5;'>")
                 .append("<th align='left'>สินค้า</th>")
                 .append("<th align='center'>คงเหลือ</th>")
                 .append("<th align='right'>ราคาขาย</th>")
@@ -120,9 +144,13 @@ public class ResendEmailService {
         }
 
         sb.append("</table>");
-        sb.append("<p style='margin-top:20px;color:#777;'>ระบบ Stock ร้านสุขใจ</p>");
+        sb.append("<p style='margin-top:16px;color:#777;'>Grocery System</p>");
         sb.append("</body></html>");
         return sb.toString();
+    }
+
+    private String nullSafe(Object o) {
+        return o == null ? "" : String.valueOf(o);
     }
 
     private String escapeHtml(String s) {
@@ -130,19 +158,7 @@ public class ResendEmailService {
         return s.replace("&", "&amp;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")
-                .replace("\"", "&quot;");
-    }
-
-    private String nullSafe(Object o) {
-        return o == null ? "" : String.valueOf(o);
-    }
-
-    // JSON escape
-    private static String escape(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "");
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
     }
 }

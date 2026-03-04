@@ -18,7 +18,7 @@ public class NotificationService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
 
-    // ✅ เปลี่ยนจาก MailService (SMTP/JavaMailSender) มาใช้ ResendEmailService (HTTP API)
+    // ✅ ใช้ตัวเดียวกับ OTP (ตอนนี้เป็น Brevo API)
     private final ResendEmailService resendEmailService;
 
     private final AuditLogService auditLogService;
@@ -30,7 +30,7 @@ public class NotificationService {
                 .toList();
 
         if (lowStockProducts.isEmpty()) {
-            return; // ไม่มีสินค้าใกล้หมด = ไม่ต้องส่ง ไม่ต้อง log
+            return;
         }
 
         List<User> owners = userRepository.findAllById(ownerIds).stream()
@@ -42,16 +42,9 @@ public class NotificationService {
         }
 
         for (User owner : owners) {
-            // ✅ ส่งผ่าน API (ไม่ใช้ SMTP)
             resendEmailService.sendLowStockEmail(owner.getEmail(), lowStockProducts, LOW_STOCK_LIMIT);
         }
 
-        // ✅ AUDIT LOG (1 ครั้งต่อการกดส่ง)
-        auditLogService.log(
-                authUserId,
-                "SEND_EMAIL",
-                "EMAIL",
-                null
-        );
+        auditLogService.log(authUserId, "SEND_EMAIL", "EMAIL", null);
     }
 }
