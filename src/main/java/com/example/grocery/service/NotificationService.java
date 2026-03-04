@@ -17,18 +17,17 @@ public class NotificationService {
 
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
-    private final MailService mailService;
-    private final AuditLogService auditLogService; // ✅ เพิ่ม
 
-    public void sendLowStockEmailToOwners(
-            Long authUserId,              // ✅ คนที่กดส่ง
-            List<Long> ownerIds
-    ) {
+    // ✅ เปลี่ยนจาก MailService (SMTP/JavaMailSender) มาใช้ ResendEmailService (HTTP API)
+    private final ResendEmailService resendEmailService;
 
-        List<Product> lowStockProducts =
-                productRepository.findAll().stream()
-                        .filter(p -> p.getStockQty() != null && p.getStockQty() <= LOW_STOCK_LIMIT)
-                        .toList();
+    private final AuditLogService auditLogService;
+
+    public void sendLowStockEmailToOwners(Long authUserId, List<Long> ownerIds) {
+
+        List<Product> lowStockProducts = productRepository.findAll().stream()
+                .filter(p -> p.getStockQty() != null && p.getStockQty() <= LOW_STOCK_LIMIT)
+                .toList();
 
         if (lowStockProducts.isEmpty()) {
             return; // ไม่มีสินค้าใกล้หมด = ไม่ต้องส่ง ไม่ต้อง log
@@ -43,7 +42,8 @@ public class NotificationService {
         }
 
         for (User owner : owners) {
-            mailService.sendLowStockEmail(owner.getEmail(), lowStockProducts);
+            // ✅ ส่งผ่าน API (ไม่ใช้ SMTP)
+            resendEmailService.sendLowStockEmail(owner.getEmail(), lowStockProducts, LOW_STOCK_LIMIT);
         }
 
         // ✅ AUDIT LOG (1 ครั้งต่อการกดส่ง)
