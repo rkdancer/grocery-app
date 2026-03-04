@@ -19,12 +19,11 @@ public class MailService {
 
     private final ObjectProvider<JavaMailSender> mailSenderProvider;
 
-    /**
-     * ปิดได้ชั่วคราวเพื่อให้ deploy ผ่าน
-     * เปิดได้ด้วย env var: APP_MAIL_ENABLED=true
-     */
     @Value("${app.mail.enabled:false}")
     private boolean mailEnabled;
+
+    @Value("${app.mail.from:no-reply@example.com}")
+    private String fromEmail;
 
     public MailService(ObjectProvider<JavaMailSender> mailSenderProvider) {
         this.mailSenderProvider = mailSenderProvider;
@@ -32,7 +31,7 @@ public class MailService {
 
     public void sendLowStockEmail(String to, List<Product> products) {
         if (!mailEnabled) {
-            log.info("Mail feature disabled (app.mail.enabled=false). Skip sending email to {}", to);
+            log.info("Mail disabled (app.mail.enabled=false). Skip sending email to {}", to);
             return;
         }
 
@@ -40,7 +39,7 @@ public class MailService {
         if (mailSender == null) {
             throw new IllegalStateException(
                     "Mail is enabled (app.mail.enabled=true) but JavaMailSender bean is missing. " +
-                            "Please configure spring.mail.* (SMTP) or disable mail."
+                            "Check spring.mail.* SMTP config."
             );
         }
 
@@ -48,12 +47,15 @@ public class MailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
+            helper.setFrom(fromEmail);
             helper.setTo(to);
             helper.setSubject("⚠️ แจ้งเตือนสินค้าใกล้หมด - Grocery System");
             helper.setText(buildHtml(products), true);
 
             mailSender.send(message);
+            log.info("Low stock email sent to {}", to);
         } catch (Exception e) {
+            log.error("Failed to send email to {}: {}", to, e.getMessage(), e);
             throw new RuntimeException("ส่งอีเมลไม่สำเร็จ", e);
         }
     }
