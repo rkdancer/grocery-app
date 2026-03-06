@@ -32,11 +32,8 @@ public class DashboardService {
     private static final int LOW_STOCK_LIMIT = 5;
     private static final ZoneId APP_ZONE = ZoneId.of("Asia/Bangkok");
 
-    // =========================
-    // SUMMARY
-    // =========================
     public Map<String, Object> summary(Long userId) {
-        requireOwner(userId); // ✅ ตอนนี้ OWNER/ADMIN เข้าได้
+        requireOwner(userId);
 
         List<Sale> sales = saleRepository.findAll();
 
@@ -107,21 +104,15 @@ public class DashboardService {
         return out;
     }
 
-    // =========================
-    // LOW STOCK
-    // =========================
     public List<Product> lowStockProducts(Long userId) {
-        requireOwner(userId); // ✅ ตอนนี้ OWNER/ADMIN เข้าได้
+        requireOwner(userId);
         return productRepository.findAll().stream()
                 .filter(p -> p.getStockQty() != null && p.getStockQty() <= LOW_STOCK_LIMIT)
                 .toList();
     }
 
-    // =========================
-    // TOP SELLING (เดือนนี้) by qty
-    // =========================
     public List<Map<String, Object>> topSellingProducts(Long userId) {
-        requireOwner(userId); // ✅ ตอนนี้ OWNER/ADMIN เข้าได้
+        requireOwner(userId);
 
         Map<Long, Product> productMap = loadProductMap();
         Set<Long> existingProductIds = productMap.keySet();
@@ -166,11 +157,8 @@ public class DashboardService {
         return result;
     }
 
-    // =========================
-    // AUDIT LOGS
-    // =========================
     public List<Map<String, Object>> recentAuditLogs(Long userId) {
-        requireOwner(userId); // ✅ ตอนนี้ OWNER/ADMIN เข้าได้
+        requireOwner(userId);
 
         List<AuditLog> logs = auditLogRepository.findTop50ByOrderByCreatedAtDesc();
 
@@ -190,11 +178,8 @@ public class DashboardService {
         }).toList();
     }
 
-    // =========================
-    // RECENT SALES
-    // =========================
     public List<Sale> recentSales(Long userId) {
-        requireOwner(userId); // ✅ ตอนนี้ OWNER/ADMIN เข้าได้
+        requireOwner(userId);
 
         return saleRepository.findAll().stream()
                 .sorted(Comparator.comparing(Sale::getSoldAt).reversed())
@@ -202,11 +187,8 @@ public class DashboardService {
                 .toList();
     }
 
-    // =========================
-    // DAILY SALES
-    // =========================
     public List<Map<String, Object>> salesDaily(Long userId, int days) {
-        requireOwner(userId); // ✅ ตอนนี้ OWNER/ADMIN เข้าได้
+        requireOwner(userId);
 
         if (days < 1) days = 1;
         if (days > 365) days = 365;
@@ -240,16 +222,15 @@ public class DashboardService {
         return result;
     }
 
-    // =========================
-    // DAILY SALES STACKED (4 params)
-    // =========================
-    public Map<String, Object> salesDailyStacked(Long userId, int days, int top, Long categoryId) {
-        requireOwner(userId); // ✅ ตอนนี้ OWNER/ADMIN เข้าได้
+    public Map<String, Object> salesDailyStacked(Long userId, int days, int top, Long categoryId, String metric) {
+        requireOwner(userId);
 
         if (days < 1) days = 1;
         if (days > 365) days = 365;
         if (top < 1) top = 1;
         if (top > 20) top = 20;
+
+        String useMetric = normalizeMetric(metric);
 
         Map<Long, Product> productMap = loadProductMap();
         Set<Long> allowedProductIds = filterProductIdsByCategory(productMap, categoryId);
@@ -262,9 +243,9 @@ public class DashboardService {
             dates.add(start.plusDays(i).toString());
         }
 
-        Map<Long, Integer> qtyMap = new HashMap<>();
-
+        Map<Long, BigDecimal> rankingMap = new HashMap<>();
         List<Sale> sales = saleRepository.findAll();
+
         for (Sale s : sales) {
             LocalDate d = toLocalDate(s.getSoldAt());
             if (d.isBefore(start) || d.isAfter(today)) continue;
@@ -272,29 +253,32 @@ public class DashboardService {
 
             for (SaleItem it : s.getItems()) {
                 if (it == null || it.getProductId() == null) continue;
+
                 Long pid = it.getProductId();
                 if (!allowedProductIds.contains(pid)) continue;
 
-                int q = (it.getQty() == null) ? 0 : it.getQty();
-                qtyMap.merge(pid, q, Integer::sum);
+                BigDecimal value = metricValue(it, useMetric);
+                if (value.compareTo(BigDecimal.ZERO) <= 0) continue;
+
+                rankingMap.merge(pid, value, BigDecimal::add);
             }
         }
 
-        if (qtyMap.isEmpty()) {
+        if (rankingMap.isEmpty()) {
             return Map.of("dates", dates, "series", List.of());
         }
 
-        List<Long> topProductIds = qtyMap.entrySet().stream()
-                .sorted(Map.Entry.<Long, Integer>comparingByValue().reversed())
+        List<Long> topProductIds = rankingMap.entrySet().stream()
+                .sorted(Map.Entry.<Long, BigDecimal>comparingByValue().reversed())
                 .limit(top)
                 .map(Map.Entry::getKey)
                 .toList();
 
-        Map<Long, BigDecimal[]> moneyByProduct = new LinkedHashMap<>();
+        Map<Long, BigDecimal[]> valueByProduct = new LinkedHashMap<>();
         for (Long pid : topProductIds) {
             BigDecimal[] arr = new BigDecimal[days];
             Arrays.fill(arr, BigDecimal.ZERO);
-            moneyByProduct.put(pid, arr);
+            valueByProduct.put(pid, arr);
         }
 
         for (Sale s : sales) {
@@ -307,13 +291,15 @@ public class DashboardService {
 
             for (SaleItem it : s.getItems()) {
                 if (it == null || it.getProductId() == null) continue;
-                Long pid = it.getProductId();
 
-                if (!moneyByProduct.containsKey(pid)) continue;
+                Long pid = it.getProductId();
+                if (!valueByProduct.containsKey(pid)) continue;
                 if (!allowedProductIds.contains(pid)) continue;
 
-                BigDecimal sub = nz(it.getSubTotal());
-                moneyByProduct.get(pid)[dayIndex] = moneyByProduct.get(pid)[dayIndex].add(sub);
+                BigDecimal value = metricValue(it, useMetric);
+                if (value.compareTo(BigDecimal.ZERO) <= 0) continue;
+
+                valueByProduct.get(pid)[dayIndex] = valueByProduct.get(pid)[dayIndex].add(value);
             }
         }
 
@@ -325,23 +311,23 @@ public class DashboardService {
             Map<String, Object> row = new HashMap<>();
             row.put("productId", pid);
             row.put("name", p.getName());
-            row.put("totals", Arrays.asList(moneyByProduct.get(pid)));
+            row.put("totals", Arrays.asList(valueByProduct.get(pid)));
             series.add(row);
         }
 
         return Map.of("dates", dates, "series", series);
     }
 
-    // backward compatible
-    public Map<String, Object> salesDailyStacked(Long userId, int days, int top) {
-        return salesDailyStacked(userId, days, top, null);
+    public Map<String, Object> salesDailyStacked(Long userId, int days, int top, Long categoryId) {
+        return salesDailyStacked(userId, days, top, categoryId, "amount");
     }
 
-    // =========================
-    // MONTHLY SALES
-    // =========================
+    public Map<String, Object> salesDailyStacked(Long userId, int days, int top) {
+        return salesDailyStacked(userId, days, top, null, "amount");
+    }
+
     public List<Map<String, Object>> salesMonthly(Long userId) {
-        requireOwner(userId); // ✅ ตอนนี้ OWNER/ADMIN เข้าได้
+        requireOwner(userId);
 
         Map<Long, Product> productMap = loadProductMap();
         Set<Long> existingProductIds = productMap.keySet();
@@ -367,9 +353,6 @@ public class DashboardService {
         return result;
     }
 
-    // =========================
-    // helpers
-    // =========================
     private User requireOwner(Long userId) {
         if (userId == null) throw new RuntimeException("Unauthorized");
 
@@ -378,7 +361,6 @@ public class DashboardService {
 
         String role = (user.getRole() == null) ? "" : user.getRole().trim().toUpperCase();
 
-        // ✅ FIX: อนุญาต OWNER หรือ ADMIN
         if (!("OWNER".equals(role) || "ADMIN".equals(role))) {
             throw new RuntimeException("เฉพาะ OWNER หรือ ADMIN เท่านั้น");
         }
@@ -425,5 +407,19 @@ public class DashboardService {
             sum = sum.add(nz(it.getSubTotal()));
         }
         return sum;
+    }
+
+    private String normalizeMetric(String metric) {
+        if (metric == null) return "amount";
+        String m = metric.trim().toLowerCase();
+        return "qty".equals(m) ? "qty" : "amount";
+    }
+
+    private BigDecimal metricValue(SaleItem it, String metric) {
+        if ("qty".equals(metric)) {
+            int q = (it.getQty() == null) ? 0 : it.getQty();
+            return BigDecimal.valueOf(q);
+        }
+        return nz(it.getSubTotal());
     }
 }

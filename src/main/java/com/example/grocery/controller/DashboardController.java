@@ -54,17 +54,16 @@ public class DashboardController {
         return dashboardService.salesDaily(userId, days);
     }
 
-    // ✅ รองรับกรอง categoryId (optional)
-    // /api/dashboard/sales-daily-stacked?days=7&top=5&categoryId=123
     @GetMapping("/sales-daily-stacked")
     public Object salesDailyStacked(
             HttpServletRequest request,
             @RequestParam(defaultValue = "7") int days,
             @RequestParam(defaultValue = "5") int top,
-            @RequestParam(required = false) Long categoryId
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(defaultValue = "amount") String metric
     ) {
         Long userId = (Long) request.getAttribute("authUserId");
-        return dashboardService.salesDailyStacked(userId, days, top, categoryId);
+        return dashboardService.salesDailyStacked(userId, days, top, categoryId, metric);
     }
 
     @GetMapping("/sales-monthly")
