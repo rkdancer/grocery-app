@@ -390,7 +390,7 @@
             </div>
         </div>
 
-        <!-- ✅ Product Mix -->
+        <!-- Product Mix -->
         <div class="section" id="productMixSection">
             <div class="section-head">
                 <h2 class="section-title">ยอดขาย แยกตามสินค้า ในภาพ</h2>
@@ -525,14 +525,16 @@
 </div>
 
 <script>
-    // ===== AUTH =====
     const token = localStorage.getItem("accessToken");
     const me = JSON.parse(localStorage.getItem("user") || "null");
     if(!token || !me || !["OWNER","ADMIN"].includes(String(me.role||"").toUpperCase())){
-    location.href = "login.html";
-}
+      location.href = "login.html";
+    }
 
-    function logout(){ localStorage.clear(); location.href = "login.html"; }
+    function logout(){
+      localStorage.clear();
+      location.href = "login.html";
+    }
 
     async function authFetch(url, opt = {}){
       const t = localStorage.getItem("accessToken");
@@ -546,7 +548,6 @@
       return r;
     }
 
-    // ===== DOM refs =====
     const elTodaySales = document.getElementById("todaySales");
     const elMonthSales = document.getElementById("monthSales");
     const elLastMonthSales = document.getElementById("lastMonthSales");
@@ -574,7 +575,6 @@
         .replaceAll("'","&#039;");
     }
 
-    // ===== common =====
     function safeResizeChart(chart){
       if(!chart) return;
       requestAnimationFrame(() => {
@@ -604,11 +604,8 @@
       }
     }
 
-    // =========================
-    // KPI Summary
-    // =========================
     fetch("/api/dashboard/summary")
-      .then(r => authFetch("/api/dashboard/summary"))
+      .then(() => authFetch("/api/dashboard/summary"))
       .then(r => r.json())
       .then(d => {
         elTodaySales.innerText = money(d.todaySales);
@@ -634,9 +631,6 @@
         elLowStockCount.innerText = "-";
       });
 
-    // =========================
-    // TOP SELLING
-    // =========================
     authFetch("/api/dashboard/top-selling")
       .then(r => r.json())
       .then(list => {
@@ -669,9 +663,6 @@
         tb.innerHTML = `<tr><td colspan="3" class="muted">โหลดข้อมูลไม่สำเร็จ</td></tr>`;
       });
 
-    // =========================
-    // LOW STOCK LIST (✅ FIXED)
-    // =========================
     const LOW_STOCK_LIMIT = 5;
     elLowLimitText.textContent = String(LOW_STOCK_LIMIT);
 
@@ -781,9 +772,6 @@
       renderLowStock();
     });
 
-    // =========================
-    // CATEGORY FILTER (for chart)
-    // =========================
     let productMixChart = null;
     let productMixDays = 7;
 
@@ -814,9 +802,6 @@
       reloadProductMix();
     });
 
-    // =========================
-    // Product Mix Chart
-    // =========================
     const DOT_COLORS = ["#6b7280","#84cc16","#3b82f6","#ec4899","#f59e0b"];
 
     function reloadProductMix(){
@@ -835,20 +820,21 @@
         const found = categoriesCache.find(x => String(x.id) === String(selectedCategoryId));
         title.textContent = found ? `ยอดขาย แยกตามสินค้า (หมวด: ${found.name})` : `ยอดขาย แยกตามสินค้า (เลือกหมวด)`;
       }else{
-        title.textContent = "ยอดขาย แยกตามสินค้า ในภาพ";
+        title.textContent = metric === "qty"
+          ? "จำนวนขาย แยกตามสินค้า ในภาพ"
+          : "ยอดขาย แยกตามสินค้า ในภาพ";
       }
 
       rangeHint.textContent = `${days} วันล่าสุด`;
 
-      // ✅ ถ้า backend ยังไม่รองรับ categoryId: เราจะ "ลองยิงมี categoryId ก่อน" ถ้า fail ค่อย retry แบบไม่มี
-      let url = `/api/dashboard/sales-daily-stacked?days=${days}&top=5`;
+      let url = `/api/dashboard/sales-daily-stacked?days=${days}&top=5&metric=${encodeURIComponent(metric)}`;
       let r;
 
       if(selectedCategoryId){
         const urlWithCat = url + `&categoryId=${encodeURIComponent(selectedCategoryId)}`;
         r = await authFetch(urlWithCat);
         if(!r.ok){
-          r = await authFetch(url); // fallback
+          r = await authFetch(url);
         }
       }else{
         r = await authFetch(url);
@@ -980,11 +966,10 @@
 
     document.getElementById("metricSelect").addEventListener("change", () => reloadProductMix());
 
-    // ===== INIT =====
     (async function init(){
       await loadCategoryFilter();
       reloadProductMix();
-      refreshLowStock(); // ✅ สำคัญ: ให้สินค้าใกล้หมดโหลด
+      refreshLowStock();
     })();
 </script>
 
